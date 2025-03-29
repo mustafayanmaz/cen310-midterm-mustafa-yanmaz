@@ -1,4 +1,4 @@
-# Calculator Project Library Generation and Testing Template
+# Book Project Library Generation and Testing Template
 
 ## Overview
 
