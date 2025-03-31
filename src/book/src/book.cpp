@@ -794,3 +794,82 @@ void heavyLoadListingTest() {
     std::cout << "Performance improvement: " << std::fixed << std::setprecision(2) << ratio << "x" << std::endl;
     pauseScreen();
 }
+
+void autoAddPerformanceTest() {
+    int testCount = 1000;
+    std::vector<int> threadCounts = { 2, 4, 8, 16 };
+    std::ofstream csv("auto_add_performance.csv");
+    csv << "ThreadCount,Time_ms\n";
+    for (int threads : threadCounts) {
+        auto start = std::chrono::steady_clock::now();
+        autoAddBooksParallelForImproved(testCount, threads);
+        auto end = std::chrono::steady_clock::now();
+        double elapsed = std::chrono::duration<double, std::milli>(end - start).count();
+        std::cout << "Threads: " << threads << " | Time: " << std::fixed << std::setprecision(4) << elapsed << " ms" << std::endl;
+        csv << threads << "," << elapsed << "\n";
+    }
+    csv.close();
+    std::cout << "Auto add performance results saved to auto_add_performance.csv" << std::endl;
+    pauseScreen();
+}
+
+void searchPerformanceTest() {
+    std::vector<Book> books = loadBooks();
+    std::string keyword = "Auto";
+
+    // Sequential
+    std::vector<Book> resultsSeq;
+    auto seqStart = std::chrono::steady_clock::now();
+    for (const Book& b : books) {
+        if (b.title.find(keyword) != std::string::npos ||
+            b.author.find(keyword) != std::string::npos ||
+            b.genre.find(keyword) != std::string::npos)
+        {
+            resultsSeq.push_back(b);
+        }
+    }
+    auto seqEnd = std::chrono::steady_clock::now();
+    double seqTime = std::chrono::duration<double, std::milli>(seqEnd - seqStart).count();
+
+    // Parallel
+    std::vector<Book> resultsPar;
+    auto parStart = std::chrono::steady_clock::now();
+#ifdef _OPENMP
+    int threadCount = omp_get_max_threads();
+    std::vector<std::vector<Book>> localResults(threadCount);
+
+#pragma omp parallel for
+    for (int i = 0; i < (int)books.size(); i++) {
+        int tid = omp_get_thread_num();
+        if (books[i].title.find(keyword) != std::string::npos ||
+            books[i].author.find(keyword) != std::string::npos ||
+            books[i].genre.find(keyword) != std::string::npos)
+        {
+            localResults[tid].push_back(books[i]);
+        }
+    }
+
+    for (int i = 0; i < threadCount; ++i) {
+        resultsPar.insert(resultsPar.end(), localResults[i].begin(), localResults[i].end());
+    }
+#else
+    resultsPar = resultsSeq; // fallback
+#endif
+
+    auto parEnd = std::chrono::steady_clock::now();
+    double parTime = std::chrono::duration<double, std::milli>(parEnd - parStart).count();
+
+    // Output
+    std::cout << "Search Performance Test with keyword: \"" << keyword << "\"" << std::endl;
+    std::cout << "Sequential: " << std::fixed << std::setprecision(4) << seqTime << " ms, Results: " << resultsSeq.size() << std::endl;
+    std::cout << "Parallel:   " << std::fixed << std::setprecision(4) << parTime << " ms, Results: " << resultsPar.size() << std::endl;
+
+    std::ofstream csv("search_performance.csv");
+    csv << "Mode,Time_ms,ResultsCount\n";
+    csv << "Sequential," << seqTime << "," << resultsSeq.size() << "\n";
+    csv << "Parallel," << parTime << "," << resultsPar.size() << "\n";
+    csv.close();
+
+    std::cout << "Search performance results saved to search_performance.csv" << std::endl;
+    pauseScreen();
+}
