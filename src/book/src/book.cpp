@@ -738,3 +738,59 @@ void deleteBooksMenu() {
     }
     pauseScreen();
 }
+
+void heavyLoadListingTest() {
+    std::vector<Book> books = loadBooks();
+    int n = books.size();
+    if (n == 0) {
+        std::cout << "No books found for heavy load test." << std::endl;
+        pauseScreen();
+        return;
+    }
+
+    std::vector<std::string> seqOutputs(n);
+    double seqStart = omp_get_wtime();
+    for (int i = 0; i < n; i++) {
+        double result = 0.0;
+        for (int j = 1; j <= 100000; j++) {
+            result += std::log(j + 1) * std::sqrt(books[i].id + 1);
+        }
+        seqOutputs[i] = "ID: " + std::to_string(books[i].id) + " | Title: " +
+            books[i].title + " | Calc: " + std::to_string(result);
+    }
+    double seqEnd = omp_get_wtime();
+    double seqTime = (seqEnd - seqStart) * 1000;
+
+    std::vector<std::string> parOutputs(n);
+    double parStart = omp_get_wtime();
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(omp_get_max_threads()) schedule(static)
+    for (int i = 0; i < n; i++) {
+        double result = 0.0;
+        for (int j = 1; j <= 100000; j++) {
+            result += std::log(j + 1) * std::sqrt(books[i].id + 1);
+        }
+        parOutputs[i] = "ID: " + std::to_string(books[i].id) + " | Title: " +
+            books[i].title + " | Calc: " + std::to_string(result);
+    }
+#else
+    for (int i = 0; i < n; i++) {
+        double result = 0.0;
+        for (int j = 1; j <= 100000; j++) {
+            result += std::log(j + 1) * std::sqrt(books[i].id + 1);
+        }
+        parOutputs[i] = "ID: " + std::to_string(books[i].id) + " | Title: " +
+            books[i].title + " | Calc: " + std::to_string(result);
+    }
+#endif
+    double parEnd = omp_get_wtime();
+    double parTime = (parEnd - parStart) * 1000;
+
+    std::cout << "Heavy Load Book Listing Performance:" << std::endl;
+    std::cout << "Books: " << n << std::endl;
+    std::cout << "Sequential: " << std::fixed << std::setprecision(4) << seqTime << " ms" << std::endl;
+    std::cout << "Parallel:   " << std::fixed << std::setprecision(4) << parTime << " ms" << std::endl;
+    double ratio = (parTime == 0.0) ? 1.0 : (seqTime / parTime);
+    std::cout << "Performance improvement: " << std::fixed << std::setprecision(2) << ratio << "x" << std::endl;
+    pauseScreen();
+}
