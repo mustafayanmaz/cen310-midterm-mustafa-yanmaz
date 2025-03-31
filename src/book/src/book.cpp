@@ -179,3 +179,185 @@ void User::deserialize(std::istream& is) {
     is.read(reinterpret_cast<char*>(&rating), sizeof(rating));
     is.read(reinterpret_cast<char*>(&ratingCount), sizeof(ratingCount));
 }
+
+// ---------------------------
+// ExchangeRequest Class Implementations
+// ---------------------------
+ExchangeRequest::ExchangeRequest() : bookId(0), fromUser(""), toUser(""), status(0) {}
+
+ExchangeRequest::ExchangeRequest(int bookId, const std::string& fromUser, const std::string& toUser, int status)
+    : bookId(bookId), fromUser(fromUser), toUser(toUser), status(status) {}
+
+void ExchangeRequest::serialize(std::ostream& os) const {
+    os.write(reinterpret_cast<const char*>(&bookId), sizeof(bookId));
+    writeEncryptedString(os, fromUser);
+    writeEncryptedString(os, toUser);
+    os.write(reinterpret_cast<const char*>(&status), sizeof(status));
+}
+
+void ExchangeRequest::deserialize(std::istream& is) {
+    is.read(reinterpret_cast<char*>(&bookId), sizeof(bookId));
+    fromUser = readEncryptedString(is);
+    toUser = readEncryptedString(is);
+    is.read(reinterpret_cast<char*>(&status), sizeof(status));
+}
+
+void exchangeRequestsMenu(const std::string& currentUser) {
+    while (true) {
+        clearScreen();
+        std::cout << "===== Exchange Requests Menu =====\n";
+        std::cout << "0. Send Exchange Request\n";
+        std::cout << "1. View Received (Pending) Requests\n";
+        std::cout << "2. Accept/Decline Request\n";
+        std::cout << "3. View Sent Requests\n";
+        std::cout << "4. Return\n";
+        std::cout << "Enter choice: ";
+        int choice;
+        std::cin >> choice;
+        if (choice == 0) {
+            sendExchangeRequestMenu(currentUser);
+        }
+        else if (choice == 1) {
+            // View received requests
+            auto reqs = loadExchangeRequests();
+            bool found = false;
+            std::cout << "----- Received (Pending) Requests -----\n";
+            for (const auto& r : reqs) {
+                if (r.toUser == currentUser && r.status == 0) {
+                    std::cout << "BookID: " << r.bookId
+                        << " | From: " << r.fromUser << std::endl;
+                    found = true;
+                }
+            }
+            if (!found) {
+                std::cout << "No pending requests.\n";
+            }
+            pauseScreen();
+        }
+        else if (choice == 2) {
+            // Accept/Decline a pending request
+            auto reqs = loadExchangeRequests();
+            std::vector<int> indexes;
+            int idx = 0;
+            std::cout << "----- Pending Requests -----\n";
+            for (int i = 0; i < (int)reqs.size(); i++) {
+                if (reqs[i].toUser == currentUser && reqs[i].status == 0) {
+                    std::cout << "[" << idx << "] "
+                        << "BookID: " << reqs[i].bookId
+                        << " | From: " << reqs[i].fromUser << std::endl;
+                    indexes.push_back(i);
+                    idx++;
+                }
+            }
+            if (indexes.empty()) {
+                std::cout << "No pending requests to process.\n";
+            }
+            else {
+                std::cout << "Select index to accept/decline: ";
+                int sel;
+                std::cin >> sel;
+                if (sel >= 0 && sel < (int)indexes.size()) {
+                    int realIdx = indexes[sel];
+                    std::cout << "1. Accept   2. Decline: ";
+                    int dec;
+                    std::cin >> dec;
+                    if (dec == 1) {
+                        reqs[realIdx].status = 1; // accepted
+                        // Create a transaction record with current date/time
+                        auto t = std::time(nullptr);
+                        std::stringstream dateStr;
+                        dateStr << std::put_time(std::localtime(&t), "%Y-%m-%d %H:%M:%S");
+                        Transaction trans(reqs[realIdx].bookId,
+                            reqs[realIdx].fromUser,
+                            reqs[realIdx].toUser,
+                            dateStr.str());
+                        addTransaction(trans);
+                        std::cout << "Request accepted. Transaction recorded.\n";
+                    }
+                    else {
+                        reqs[realIdx].status = -1; // declined
+                        std::cout << "Request declined.\n";
+                    }
+                    saveExchangeRequests(reqs);
+                }
+                else {
+                    std::cout << "Invalid selection.\n";
+                }
+            }
+            pauseScreen();
+        }
+        else if (choice == 3) {
+            // View sent requests
+            auto reqs = loadExchangeRequests();
+            bool found = false;
+            std::cout << "----- Sent Requests -----\n";
+            for (const auto& r : reqs) {
+                if (r.fromUser == currentUser) {
+                    std::string st;
+                    if (r.status == 0) st = "Pending";
+                    else if (r.status == 1) st = "Accepted";
+                    else if (r.status == -1) st = "Declined";
+                    std::cout << "BookID: " << r.bookId
+                        << " | To: " << r.toUser
+                        << " | Status: " << st << std::endl;
+                    found = true;
+                }
+            }
+            if (!found) {
+                std::cout << "No sent requests found.\n";
+            }
+            pauseScreen();
+        }
+        else if (choice == 4) {
+            break; // Return to user menu
+        }
+        else {
+            std::cout << "Invalid choice.\n";
+            pauseScreen();
+        }
+    }
+}
+
+void sendExchangeRequestMenu(const std::string& currentUser) {
+    clearScreen();
+    std::cout << "===== Send Exchange Request =====\n";
+    std::cout << "Enter search keyword (e.g., book title): ";
+    std::string keyword;
+    std::cin >> keyword;
+
+    // Load all books and filter those matching keyword and not owned by currentUser
+    auto allBooks = loadBooks();
+    std::vector<Book> matchingBooks;
+    for (const auto& b : allBooks) {
+        if (b.title.find(keyword) != std::string::npos && b.owner != currentUser) {
+            matchingBooks.push_back(b);
+        }
+    }
+
+    if (matchingBooks.empty()) {
+        std::cout << "No matching books found or you already own them.\n";
+        pauseScreen();
+        return;
+    }
+
+    std::cout << "Matching Books:\n";
+    for (size_t i = 0; i < matchingBooks.size(); i++) {
+        std::cout << "[" << i << "] "
+            << "ID: " << matchingBooks[i].id
+            << " | Title: " << matchingBooks[i].title
+            << " | Owner: " << matchingBooks[i].owner << std::endl;
+    }
+    std::cout << "Select the index of the book to request: ";
+    int sel;
+    std::cin >> sel;
+    if (sel < 0 || sel >= (int)matchingBooks.size()) {
+        std::cout << "Invalid selection.\n";
+        pauseScreen();
+        return;
+    }
+    // Create exchange request: from currentUser to the book's owner, status = 0 (pending)
+    ExchangeRequest req(matchingBooks[sel].id, currentUser, matchingBooks[sel].owner, 0);
+    sendExchangeRequest(req);
+    std::cout << "Exchange request sent to user " << matchingBooks[sel].owner << " for Book ID " << matchingBooks[sel].id << ".\n";
+    pauseScreen();
+}
