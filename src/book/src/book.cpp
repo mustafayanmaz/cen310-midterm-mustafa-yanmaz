@@ -586,3 +586,155 @@ void saveTransactions(const std::vector<Transaction>& transList) {
         t.serialize(ofs);
     ofs.close();
 }
+
+void addBookManually(const std::string& currentUser) {
+    std::string title, author, genre;
+    std::cout << "Enter book title: ";
+    std::cin.ignore();
+    std::getline(std::cin, title);
+    std::cout << "Enter book author: ";
+    std::getline(std::cin, author);
+    std::cout << "Enter book genre: ";
+    std::getline(std::cin, genre);
+    std::vector<Book> books = loadBooks();
+    int nextId = books.empty() ? 1 : books.back().id + 1;
+    Book b(nextId, title, author, genre, currentUser);
+    addBook(b);
+    std::cout << "Book added successfully." << std::endl;
+    pauseScreen();
+}
+
+void listAllBooks() {
+    std::vector<Book> books = loadBooks();
+    if (books.empty())
+        std::cout << "No books found." << std::endl;
+    else {
+        std::cout << "Book List:" << std::endl;
+        for (const Book& b : books) {
+            std::cout << "ID: " << b.id
+                << " | Title: " << b.title
+                << " | Author: " << b.author
+                << " | Genre: " << b.genre
+                << " | Owner: " << b.owner << std::endl;
+        }
+    }
+    pauseScreen();
+}
+
+void searchBooksMenu() {
+    std::cout << "Search by:" << std::endl;
+    std::cout << "1. Title" << std::endl;
+    std::cout << "2. Author" << std::endl;
+    std::cout << "3. Genre" << std::endl;
+    std::cout << "Enter your choice: ";
+    int choice;
+    std::cin >> choice;
+    std::cout << "Enter search keyword: ";
+    std::string keyword;
+    std::cin.ignore();
+    std::getline(std::cin, keyword);
+    std::vector<Book> books = loadBooks();
+    bool found = false;
+    for (const Book& b : books) {
+        bool match = false;
+        if (choice == 1 && b.title.find(keyword) != std::string::npos)
+            match = true;
+        else if (choice == 2 && b.author.find(keyword) != std::string::npos)
+            match = true;
+        else if (choice == 3 && b.genre.find(keyword) != std::string::npos)
+            match = true;
+        if (match) {
+            std::cout << "ID: " << b.id
+                << " | Title: " << b.title
+                << " | Author: " << b.author
+                << " | Genre: " << b.genre
+                << " | Owner: " << b.owner << std::endl;
+            found = true;
+        }
+    }
+    if (!found)
+        std::cout << "No matching books found." << std::endl;
+    pauseScreen();
+}
+
+void transactionHistoryMenu() {
+    std::vector<Transaction> transactions = loadTransactions();
+    if (transactions.empty())
+        std::cout << "No transactions found." << std::endl;
+    else {
+        std::cout << "Transaction History:" << std::endl;
+        for (const Transaction& t : transactions) {
+            std::cout << "Book ID: " << t.bookId
+                << " | From: " << t.fromUser
+                << " | To: " << t.toUser
+                << " | Date: " << t.date << std::endl;
+        }
+    }
+    pauseScreen();
+}
+
+void deleteBooksMenu() {
+    std::cout << "Delete Books Menu:" << std::endl;
+    std::cout << "1. Delete Single Book" << std::endl;
+    std::cout << "2. Delete Multiple Books" << std::endl;
+    std::cout << "Enter your choice: ";
+    int choice;
+    std::cin >> choice;
+    if (choice == 1) {
+        std::vector<Book> books = loadBooks();
+        if (books.empty()) {
+            std::cout << "No books to delete." << std::endl;
+            pauseScreen();
+            return;
+        }
+        std::cout << "Book List:" << std::endl;
+        for (const Book& b : books)
+            std::cout << "ID: " << b.id << " | Title: " << b.title << std::endl;
+        int id;
+        std::cout << "Enter the ID of the book to delete: ";
+        std::cin >> id;
+        bool found = false;
+        std::vector<Book> newBooks;
+        for (const Book& b : books) {
+            if (b.id == id)
+                found = true;
+            else
+                newBooks.push_back(b);
+        }
+        if (found)
+            std::cout << "Book with ID " << id << " deleted." << std::endl;
+        else
+            std::cout << "Book with ID " << id << " not found." << std::endl;
+        saveBooks(newBooks);
+    }
+    else if (choice == 2) {
+        int low, high;
+        std::cout << "Enter the lower bound ID: ";
+        std::cin >> low;
+        std::cout << "Enter the upper bound ID: ";
+        std::cin >> high;
+        std::vector<Book> books = loadBooks();
+        if (books.empty()) {
+            std::cout << "No books to delete." << std::endl;
+            pauseScreen();
+            return;
+        }
+        int count = 0;
+        std::vector<Book> newBooks;
+        for (const Book& b : books) {
+            if (b.id >= low && b.id <= high)
+                count++;
+            else
+                newBooks.push_back(b);
+        }
+        if (count > 0)
+            std::cout << count << " books deleted in the range [" << low << ", " << high << "]." << std::endl;
+        else
+            std::cout << "No books found in the given range." << std::endl;
+        saveBooks(newBooks);
+    }
+    else {
+        std::cout << "Invalid choice." << std::endl;
+    }
+    pauseScreen();
+}
