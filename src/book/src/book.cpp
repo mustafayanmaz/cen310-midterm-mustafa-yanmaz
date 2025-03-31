@@ -475,3 +475,51 @@ void autoAddBooksParallelForImproved(int count, int numThreads) {
     std::cout << "Auto addition of " << count << " books (improved parallel for, "
         << numThreads << " threads) completed." << std::endl;
 }
+
+// ---------------------------
+// User Management Functions
+// ---------------------------
+bool registerUser(const User& user) {
+    std::lock_guard<std::mutex> lock(usersMutex);
+    std::vector<User> users = loadUsers();
+    for (const User& u : users)
+        if (u.username == user.username)
+            return false;
+    users.push_back(user);
+    saveUsers(users);
+    return true;
+}
+
+bool loginUser(const std::string& username, const std::string& password) {
+    std::lock_guard<std::mutex> lock(usersMutex);
+    std::vector<User> users = loadUsers();
+    for (const User& u : users)
+        if (u.username == username && u.password == password)
+            return true;
+    return false;
+}
+
+std::vector<User> loadUsers() {
+    std::vector<User> users;
+    std::ifstream ifs(USERS_FILE, std::ios::binary);
+    if (!ifs) {
+        std::ofstream ofs(USERS_FILE, std::ios::binary);
+        ofs.close();
+        return users;
+    }
+    while (ifs.peek() != EOF) {
+        User u;
+        u.deserialize(ifs);
+        if (ifs.fail()) break;
+        users.push_back(u);
+    }
+    ifs.close();
+    return users;
+}
+
+void saveUsers(const std::vector<User>& users) {
+    std::ofstream ofs(USERS_FILE, std::ios::binary | std::ios::trunc);
+    for (const User& u : users)
+        u.serialize(ofs);
+    ofs.close();
+}
