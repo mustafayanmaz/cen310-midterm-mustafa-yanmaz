@@ -1,108 +1,95 @@
-/**
- * @file bookapp.cpp
- * @brief A simple program to demonstrate the usage of the book model class.
- *
- * This program process infix notations and calculate operations
- *
- */
-
- // Standard Libraries
+#include "book.h"
 #include <iostream>
-#include <stack>
-#include <string>
-#include <sstream>
-#include <stdexcept>
-#include "../../book/header/book.h"  // Adjust this include path based on your project structure
-
-using namespace Coruh::Book;
-
-bool isOperator(char c) {
-    return (c == '+' || c == '-' || c == '*' || c == '/');
-}
-
-int precedence(char c) {
-    if(c == '+' || c == '-') return 1;
-    if(c == '*' || c == '/') return 2;
-    return 0;
-}
-
-std::string infixToPostfix(const std::string& infix) {
-    std::stack<char> s;
-    std::ostringstream postfix;
-
-    for(char c : infix) {
-        if(std::isdigit(c)) {
-            postfix << c;
-        } else if(isOperator(c)) {
-            while(!s.empty() && precedence(s.top()) >= precedence(c)) {
-                postfix << ' ' << s.top();
-                s.pop();
-            }
-            postfix << ' ';
-            s.push(c);
-        } else if(c == '(') {
-            s.push(c);
-        } else if(c == ')') {
-            while(!s.empty() && s.top() != '(') {
-                postfix << ' ' << s.top();
-                s.pop();
-            }
-            s.pop();
-        }
-    }
-
-    while(!s.empty()) {
-        postfix << ' ' << s.top();
-        s.pop();
-    }
-
-    return postfix.str();
-}
-
-double evaluatePostfix(const std::string& postfix) {
-    std::stack<double> s;
-    std::istringstream iss(postfix);
-    std::string token;
-
-    while(iss >> token) {
-        if(isOperator(token[0])) {
-            double b = s.top(); s.pop();
-            double a = s.top(); s.pop();
-            double result;
-
-            switch(token[0]) {
-                case '+': result = Book::add(a, b); break;
-                case '-': result = Book::subtract(a, b); break;
-                case '*': result = Book::multiply(a, b); break;
-                case '/': 
-                    if (b == 0) {
-                        throw std::invalid_argument("Division by zero is not allowed.");
-                    }
-                    result = Book::divide(a, b); break;
-            }
-
-            s.push(result);
-        } else {
-            s.push(std::stod(token));
-        }
-    }
-
-    return s.top();
-}
 
 int main() {
-    std::string infix;
-
-    std::cout << "Enter an infix expression: ";
-    std::getline(std::cin, infix);
-
-    try {
-        std::string postfix = infixToPostfix(infix);
-        double result = evaluatePostfix(postfix);
-        std::cout << "Result: " << result << std::endl;
-    } catch(const std::invalid_argument& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+    std::string currentUser = "";
+    int choice;
+    while (true) {
+        clearScreen();
+        if (currentUser.empty()) {
+            showMainMenu();
+            std::cin >> choice;
+            switch (choice) {
+            case 1:
+                registerUserMenu();
+                break;
+            case 2:
+                if (loginUserMenu(currentUser)) {
+                }
+                break;
+            case 3:
+                std::cout << "Exiting application." << std::endl;
+                return 0;
+            default:
+                std::cout << "Invalid choice." << std::endl;
+                pauseScreen();
+                break;
+            }
+        }
+        else {
+            clearScreen();
+            showUserMenu(currentUser);
+            std::cin >> choice;
+            switch (choice) {
+            case 1:
+                addBookManually(currentUser);
+                break;
+            case 2: {
+                int count;
+                std::cout << "Enter number of books to add (thread per book): ";
+                std::cin >> count;
+                autoAddBooksThreadPerBook(count);
+                pauseScreen();
+            }
+                  break;
+            case 3: {
+                int count, numThreads;
+                std::cout << "Enter number of books to add (improved parallel for): ";
+                std::cin >> count;
+                std::cout << "Enter number of threads to use: ";
+                std::cin >> numThreads;
+                autoAddBooksParallelForImproved(count, numThreads);
+                pauseScreen();
+            }
+                  break;
+            case 4:
+                listAllBooks();
+                break;
+            case 5:
+                searchBooksMenu();
+                break;
+            case 6:
+                exchangeRequestsMenu(currentUser);
+                break;
+            case 7:
+                rateUserMenu(currentUser);
+                break;
+            case 8:
+                transactionHistoryMenu();
+                break;
+            case 9:
+                deleteBooksMenu();
+                break;
+            case 10:
+                heavyLoadListingTest();
+                break;
+            case 11:
+                autoAddPerformanceTest();
+                break;
+            case 12:
+                searchPerformanceTest();
+                break;
+            case 13:
+                currentUser = "";
+                std::cout << "Logged out successfully." << std::endl;
+                pauseScreen();
+                break;
+            default:
+                std::cout << "Invalid choice." << std::endl;
+                pauseScreen();
+                break;
+            }
+        }
     }
-
     return 0;
 }
