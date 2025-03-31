@@ -523,3 +523,66 @@ void saveUsers(const std::vector<User>& users) {
         u.serialize(ofs);
     ofs.close();
 }
+
+
+// ---------------------------
+// Exchange Request Functions
+// ---------------------------
+void sendExchangeRequest(const ExchangeRequest& req) {
+    std::lock_guard<std::mutex> lock(requestsMutex);
+    std::vector<ExchangeRequest> reqs = loadExchangeRequests();
+    reqs.push_back(req);
+    saveExchangeRequests(reqs);
+}
+
+std::vector<ExchangeRequest> loadExchangeRequests() {
+    std::vector<ExchangeRequest> reqs;
+    std::ifstream ifs(REQUESTS_FILE, std::ios::binary);
+    if (!ifs) return reqs;
+    while (ifs.peek() != EOF) {
+        ExchangeRequest r;
+        r.deserialize(ifs);
+        if (ifs.fail()) break;
+        reqs.push_back(r);
+    }
+    ifs.close();
+    return reqs;
+}
+
+void saveExchangeRequests(const std::vector<ExchangeRequest>& reqs) {
+    std::ofstream ofs(REQUESTS_FILE, std::ios::binary | std::ios::trunc);
+    for (const ExchangeRequest& r : reqs)
+        r.serialize(ofs);
+    ofs.close();
+}
+
+// ---------------------------
+// Transaction Functions
+// ---------------------------
+void addTransaction(const Transaction& trans) {
+    std::lock_guard<std::mutex> lock(transactionsMutex);
+    std::vector<Transaction> transList = loadTransactions();
+    transList.push_back(trans);
+    saveTransactions(transList);
+}
+
+std::vector<Transaction> loadTransactions() {
+    std::vector<Transaction> transList;
+    std::ifstream ifs(TRANSACTIONS_FILE, std::ios::binary);
+    if (!ifs) return transList;
+    while (ifs.peek() != EOF) {
+        Transaction t;
+        t.deserialize(ifs);
+        if (ifs.fail()) break;
+        transList.push_back(t);
+    }
+    ifs.close();
+    return transList;
+}
+
+void saveTransactions(const std::vector<Transaction>& transList) {
+    std::ofstream ofs(TRANSACTIONS_FILE, std::ios::binary | std::ios::trunc);
+    for (const Transaction& t : transList)
+        t.serialize(ofs);
+    ofs.close();
+}
