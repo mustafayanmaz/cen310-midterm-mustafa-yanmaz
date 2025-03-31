@@ -873,3 +873,36 @@ void searchPerformanceTest() {
     std::cout << "Search performance results saved to search_performance.csv" << std::endl;
     pauseScreen();
 }
+
+void rateUserMenu(const std::string& currentUser) {
+    clearScreen();
+    std::cout << "===== Rate User Menu =====\n";
+    std::cout << "Enter username to rate: ";
+    std::string userToRate;
+    std::cin >> userToRate;
+    std::cout << "Enter rating (0.0 - 5.0): ";
+    float ratingVal;
+    std::cin >> ratingVal;
+    if (ratingVal < 0.0f) ratingVal = 0.0f;
+    if (ratingVal > 5.0f) ratingVal = 5.0f;
+
+    std::vector<User> allUsers = loadUsers();
+    bool found = false;
+    for (auto& u : allUsers) {
+        if (u.username == userToRate) {
+            // rating = (rating * ratingCount + newRating) / (ratingCount + 1)
+            u.rating = (u.rating * u.ratingCount + ratingVal) / (u.ratingCount + 1);
+            u.ratingCount++;
+            found = true;
+            break;
+        }
+    }
+    if (found) {
+        saveUsers(allUsers);
+        std::cout << "User rated successfully.\n";
+    }
+    else {
+        std::cout << "User not found.\n";
+    }
+    pauseScreen();
+}
