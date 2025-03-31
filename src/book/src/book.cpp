@@ -383,3 +383,95 @@ void Transaction::deserialize(std::istream& is) {
     toUser = readEncryptedString(is);
     date = readEncryptedString(is);
 }
+
+// ---------------------------
+// File Paths
+// ---------------------------
+const std::string BOOKS_FILE = "books.dat";
+const std::string USERS_FILE = "users.dat";
+const std::string REQUESTS_FILE = "requests.dat";
+const std::string TRANSACTIONS_FILE = "transactions.dat";
+
+// ---------------------------
+// File Operation Functions
+// ---------------------------
+void addBook(const Book& book) {
+    std::lock_guard<std::mutex> lock(booksMutex);
+    std::vector<Book> books = loadBooks();
+    books.push_back(book);
+    saveBooks(books);
+}
+
+std::vector<Book> loadBooks() {
+    std::vector<Book> books;
+    std::ifstream ifs(BOOKS_FILE, std::ios::binary);
+    if (!ifs) return books;
+    while (ifs.peek() != EOF) {
+        Book b;
+        b.deserialize(ifs);
+        if (ifs.fail()) break;
+        books.push_back(b);
+    }
+    ifs.close();
+    return books;
+}
+
+void saveBooks(const std::vector<Book>& books) {
+    std::ofstream ofs(BOOKS_FILE, std::ios::binary | std::ios::trunc);
+    for (const Book& b : books)
+        b.serialize(ofs);
+    ofs.close();
+}
+
+// ---------------------------
+// Auto Add Functions
+// ---------------------------
+void autoAddBooksThreadPerBook(int count) {
+    std::vector<Book> oldBooks = loadBooks();
+    int nextId = oldBooks.empty() ? 1 : oldBooks.back().id + 1;
+    auto addTask = [nextId](int index) {
+        int bookId = nextId + index;
+        std::stringstream ss;
+        ss << "Auto Book " << bookId;
+        Book b(bookId, ss.str(), "Author " + std::to_string(bookId),
+            "Genre " + std::to_string(bookId % 5), "AutoUser");
+        addBook(b);
+        };
+    std::vector<std::thread> threads;
+    threads.reserve(count);
+    for (int i = 0; i < count; ++i)
+        threads.emplace_back(addTask, i);
+    for (auto& t : threads)
+        t.join();
+    std::cout << "Auto addition of " << count << " books (thread per book) completed." << std::endl;
+}
+
+void autoAddBooksParallelForImproved(int count, int numThreads) {
+    std::vector<Book> oldBooks = loadBooks();
+    int nextId = oldBooks.empty() ? 1 : oldBooks.back().id + 1;
+    std::vector<Book> newBooks(count);
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(numThreads)
+    for (int i = 0; i < count; i++) {
+        int bookId = nextId + i;
+        std::stringstream ss;
+        ss << "Auto Book " << bookId;
+        newBooks[i] = Book(bookId, ss.str(), "Author " + std::to_string(bookId),
+            "Genre " + std::to_string(bookId % 5), "AutoUser");
+    }
+#else
+    for (int i = 0; i < count; i++) {
+        int bookId = nextId + i;
+        newBooks[i] = Book(bookId, "Auto Book " + std::to_string(bookId),
+            "Author " + std::to_string(bookId),
+            "Genre " + std::to_string(bookId % 5), "AutoUser");
+    }
+#endif
+    {
+        std::lock_guard<std::mutex> lock(booksMutex);
+        oldBooks.insert(oldBooks.end(), newBooks.begin(), newBooks.end());
+        saveBooks(oldBooks);
+    }
+    std::cout << "Auto addition of " << count << " books (improved parallel for, "
+        << numThreads << " threads) completed." << std::endl;
+}
