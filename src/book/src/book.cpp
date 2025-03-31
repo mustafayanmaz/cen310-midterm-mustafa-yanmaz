@@ -361,3 +361,25 @@ void sendExchangeRequestMenu(const std::string& currentUser) {
     std::cout << "Exchange request sent to user " << matchingBooks[sel].owner << " for Book ID " << matchingBooks[sel].id << ".\n";
     pauseScreen();
 }
+
+// ---------------------------
+// Transaction Class Implementations
+// ---------------------------
+Transaction::Transaction() : bookId(0), fromUser(""), toUser(""), date("") {}
+
+Transaction::Transaction(int bookId, const std::string& fromUser, const std::string& toUser, const std::string& date)
+    : bookId(bookId), fromUser(fromUser), toUser(toUser), date(date) {}
+
+void Transaction::serialize(std::ostream& os) const {
+    os.write(reinterpret_cast<const char*>(&bookId), sizeof(bookId));
+    writeEncryptedString(os, fromUser);
+    writeEncryptedString(os, toUser);
+    writeEncryptedString(os, date);
+}
+
+void Transaction::deserialize(std::istream& is) {
+    is.read(reinterpret_cast<char*>(&bookId), sizeof(bookId));
+    fromUser = readEncryptedString(is);
+    toUser = readEncryptedString(is);
+    date = readEncryptedString(is);
+}
