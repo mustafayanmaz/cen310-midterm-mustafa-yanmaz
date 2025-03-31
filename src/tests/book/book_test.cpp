@@ -77,6 +77,67 @@ TEST(ExchangeRequestTest, SerializationDeserialization) {
     EXPECT_EQ(req1.status, req2.status);
 }
 
+// --- Transaction ---
+TEST(TransactionTest, SerializationDeserialization) {
+    Transaction t1(1, "UserA", "UserB", "2025-03-28 12:34:56");
+    std::stringstream ss;
+    t1.serialize(ss);
+    Transaction t2;
+    t2.deserialize(ss);
+    EXPECT_EQ(t1.bookId, t2.bookId);
+    EXPECT_EQ(t1.fromUser, t2.fromUser);
+    EXPECT_EQ(t1.toUser, t2.toUser);
+    EXPECT_EQ(t1.date, t2.date);
+}
+
+// ==========================
+// 3. File Operation Tests
+// ==========================
+TEST(FileOpsTest, SaveLoadBooks) {
+    RemoveTestFiles();
+    std::vector<Book> books;
+    books.push_back(Book(1, "Test Book", "Test Author", "Test Genre", "TestUser"));
+    saveBooks(books);
+    auto loaded = loadBooks();
+    ASSERT_EQ(loaded.size(), 1);
+    EXPECT_EQ(loaded[0].id, 1);
+    EXPECT_EQ(loaded[0].title, "Test Book");
+    RemoveTestFiles();
+}
+
+TEST(FileOpsTest, RegisterAndLoginUser) {
+    RemoveTestFiles();
+    User u("TestUser", "TestPass");
+    EXPECT_TRUE(registerUser(u));          // First registration should succeed
+    EXPECT_FALSE(registerUser(u));         // Duplicate registration should fail
+    EXPECT_TRUE(loginUser("TestUser", "TestPass"));
+    EXPECT_FALSE(loginUser("TestUser", "WrongPass"));
+    RemoveTestFiles();
+}
+
+TEST(FileOpsTest, SaveLoadExchangeRequests) {
+    RemoveTestFiles();
+    std::vector<ExchangeRequest> reqs;
+    reqs.push_back(ExchangeRequest(1, "UserA", "UserB", 0));
+    saveExchangeRequests(reqs);
+    auto loaded = loadExchangeRequests();
+    ASSERT_EQ(loaded.size(), 1);
+    EXPECT_EQ(loaded[0].bookId, 1);
+    EXPECT_EQ(loaded[0].fromUser, "UserA");
+    RemoveTestFiles();
+}
+
+TEST(FileOpsTest, SaveLoadTransactions) {
+    RemoveTestFiles();
+    std::vector<Transaction> trans;
+    trans.push_back(Transaction(1, "UserA", "UserB", "2025-03-28 12:34:56"));
+    saveTransactions(trans);
+    auto loaded = loadTransactions();
+    ASSERT_EQ(loaded.size(), 1);
+    EXPECT_EQ(loaded[0].date, "2025-03-28 12:34:56");
+    RemoveTestFiles();
+}
+
 // ==========================
 // main() for tests
 // ==========================
