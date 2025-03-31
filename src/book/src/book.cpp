@@ -108,3 +108,74 @@ void showUserMenu(const std::string& username) {
     std::cout << "13. Logout" << std::endl;
     std::cout << "Enter your choice: ";
 }
+
+void registerUserMenu() {
+    std::string username, password;
+    std::cout << "Enter new username: ";
+    std::cin >> username;
+    std::cout << "Enter new password: ";
+    std::cin >> password;
+    User user(username, password);
+    if (registerUser(user))
+        std::cout << "Registration successful." << std::endl;
+    else
+        std::cout << "Registration failed. Username may already exist." << std::endl;
+    pauseScreen();
+}
+
+bool loginUserMenu(std::string& loggedInUser) {
+    std::string username, password;
+    std::cout << "Enter username: ";
+    std::cin >> username;
+    std::cout << "Enter password: ";
+    std::cin >> password;
+    if (loginUser(username, password)) {
+        std::cout << "Login successful." << std::endl;
+        loggedInUser = username;
+        pauseScreen();
+        return true;
+    }
+    else {
+        std::cout << "Login failed. Please try again." << std::endl;
+        pauseScreen();
+        return false;
+    }
+}
+
+void Book::serialize(std::ostream& os) const {
+    os.write(reinterpret_cast<const char*>(&id), sizeof(id));
+    writeEncryptedString(os, title);
+    writeEncryptedString(os, author);
+    writeEncryptedString(os, genre);
+    writeEncryptedString(os, owner);
+}
+
+void Book::deserialize(std::istream& is) {
+    is.read(reinterpret_cast<char*>(&id), sizeof(id));
+    title = readEncryptedString(is);
+    author = readEncryptedString(is);
+    genre = readEncryptedString(is);
+    owner = readEncryptedString(is);
+}
+
+// ---------------------------
+// User Class Implementations
+// ---------------------------
+User::User() : username(""), password(""), rating(0.0f), ratingCount(0) {}
+
+User::User(const std::string& username, const std::string& password)
+    : username(username), password(password), rating(0.0f), ratingCount(0) {}
+
+void User::serialize(std::ostream& os) const {
+    writeEncryptedString(os, username);
+    writeEncryptedString(os, password);
+    os.write(reinterpret_cast<const char*>(&rating), sizeof(rating));
+    os.write(reinterpret_cast<const char*>(&ratingCount), sizeof(ratingCount));
+}
+
+void User::deserialize(std::istream& is) {
+    username = readEncryptedString(is);
+    password = readEncryptedString(is);
+    is.read(reinterpret_cast<char*>(&rating), sizeof(rating));
+    is.read(reinterpret_cast<char*>(&ratingCount), sizeof(ratingCount));
+}
