@@ -138,6 +138,101 @@ TEST(FileOpsTest, SaveLoadTransactions) {
     RemoveTestFiles();
 }
 
+
+// ==========================
+// 4. Auto Add Functions Tests
+// ==========================
+TEST(AutoAddTest, ThreadPerBook) {
+    RemoveTestFiles();
+    EXPECT_EQ(loadBooks().size(), 0);
+    autoAddBooksThreadPerBook(5);
+    EXPECT_EQ(loadBooks().size(), 5);
+    RemoveTestFiles();
+}
+
+TEST(AutoAddTest, ParallelForImproved) {
+    RemoveTestFiles();
+    autoAddBooksParallelForImproved(10, 4);
+    EXPECT_EQ(loadBooks().size(), 10);
+    RemoveTestFiles();
+}
+
+// ==========================
+// 5. Exchange Request & Transaction Tests
+// ==========================
+TEST(ExchangeTest, SendAndAcceptRequest) {
+    RemoveTestFiles();
+    // Send an exchange request: from UserA to UserB for BookID 1
+    ExchangeRequest req(1, "UserA", "UserB", 0);
+    sendExchangeRequest(req);
+    auto reqs = loadExchangeRequests();
+    ASSERT_EQ(reqs.size(), 1);
+    EXPECT_EQ(reqs[0].status, 0);
+
+    // Simulate accepting the request:
+    reqs[0].status = 1;
+    std::time_t t = std::time(nullptr);
+    std::string dateStr = formatDateTime(t);
+    Transaction trans(reqs[0].bookId, reqs[0].fromUser, reqs[0].toUser, dateStr);
+    addTransaction(trans);
+    saveExchangeRequests(reqs);
+    auto transList = loadTransactions();
+    EXPECT_EQ(transList.size(), 1);
+    RemoveTestFiles();
+}
+
+// ==========================
+// 6. Rate User Test
+// ==========================
+TEST(RateUserTest, RateUserCalculation) {
+    RemoveTestFiles();
+    User u("UserA", "password");
+    std::vector<User> usersVec = { u };
+    saveUsers(usersVec);
+    auto loadedUsers = loadUsers();
+    ASSERT_EQ(loadedUsers.size(), 1);
+    int oldCount = loadedUsers[0].ratingCount;
+    // Simulate rating: add 4.0 rating
+    loadedUsers[0].rating = (loadedUsers[0].rating * loadedUsers[0].ratingCount + 4.0f) / (loadedUsers[0].ratingCount + 1);
+    loadedUsers[0].ratingCount++;
+    saveUsers(loadedUsers);
+    auto newUsers = loadUsers();
+    EXPECT_NEAR(newUsers[0].rating, 4.0f, 0.001);
+    EXPECT_EQ(newUsers[0].ratingCount, oldCount + 1);
+    RemoveTestFiles();
+}
+
+// ==========================
+// 7. UI Output Tests (Non-interactive parts)
+// ==========================
+TEST(UIOutputTest, ShowMainMenuContainsPlatform) {
+    std::streambuf* orig_buf = std::cout.rdbuf();
+    std::ostringstream oss;
+    std::cout.rdbuf(oss.rdbuf());
+    showMainMenu();
+    std::string output = oss.str();
+    std::cout.rdbuf(orig_buf);
+    EXPECT_NE(output.find("Book Exchange Platform"), std::string::npos);
+}
+
+TEST(UIOutputTest, ShowUserMenuContainsWelcome) {
+    std::streambuf* orig_buf = std::cout.rdbuf();
+    std::ostringstream oss;
+    std::cout.rdbuf(oss.rdbuf());
+    showUserMenu("TestUser");
+    std::string output = oss.str();
+    std::cout.rdbuf(orig_buf);
+    EXPECT_NE(output.find("Welcome, TestUser"), std::string::npos);
+}
+
+// ==========================
+// 8. Miscellaneous Tests: clearScreen & pauseScreen (Basic call test)
+// ==========================
+TEST(MiscTest, ClearAndPauseDoNotThrow) {
+    EXPECT_NO_THROW(clearScreen());
+    // pauseScreen() waits for user input, so it is not called here.
+}
+
 // ==========================
 // main() for tests
 // ==========================
