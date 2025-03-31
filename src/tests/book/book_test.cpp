@@ -1,57 +1,89 @@
-//#define ENABLE_BOOK_TEST  // Uncomment this line to enable the Book tests
+// book_test.cpp
 
-#include "gtest/gtest.h"
-#include "../../book/header/book.h"  // Adjust this include path based on your project structure
+#include "book.h"
+#include <gtest/gtest.h>
+#include <sstream>
+#include <cstdio>    // for remove()
+#include <ctime>
 
-using namespace Coruh::Book;
-
-class BookTest : public ::testing::Test {
-protected:
-	void SetUp() override {
-		// Setup test data
-	}
-
-	void TearDown() override {
-		// Clean up test data
-	}
-};
-
-TEST_F(BookTest, TestAdd) {
-	double result = Book::add(5.0, 3.0);
-	EXPECT_DOUBLE_EQ(result, 8.0);
+// Helper function: Format date/time using strftime (avoiding std::put_time)
+std::string formatDateTime(std::time_t t) {
+    char buf[100];
+    std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", std::localtime(&t));
+    return std::string(buf);
 }
 
-TEST_F(BookTest, TestSubtract) {
-	double result = Book::subtract(5.0, 3.0);
-	EXPECT_DOUBLE_EQ(result, 2.0);
+// Helper function: Remove test files
+void RemoveTestFiles() {
+    std::remove("books.dat");
+    std::remove("users.dat");
+    std::remove("requests.dat");
+    std::remove("transactions.dat");
 }
 
-TEST_F(BookTest, TestMultiply) {
-	double result = Book::multiply(5.0, 3.0);
-	EXPECT_DOUBLE_EQ(result, 15.0);
+// ==========================
+// 1. Encryption Tests
+// ==========================
+TEST(EncryptionTest, BasicEncryption) {
+    std::string original = "Hello, World!";
+    std::string encrypted = encryptString(original);
+    std::string decrypted = decryptString(encrypted);
+    EXPECT_EQ(decrypted, original);
 }
 
-TEST_F(BookTest, TestDivide) {
-	double result = Book::divide(6.0, 3.0);
-	EXPECT_DOUBLE_EQ(result, 2.0);
+// ==========================
+// 2. Serialization/Deserialization Tests
+// ==========================
+
+// --- Book ---
+TEST(BookTest, SerializationDeserialization) {
+    Book b1(1, "Test Book", "Test Author", "Test Genre", "TestUser");
+    std::stringstream ss;
+    b1.serialize(ss);
+    Book b2;
+    b2.deserialize(ss);
+    EXPECT_EQ(b1.id, b2.id);
+    EXPECT_EQ(b1.title, b2.title);
+    EXPECT_EQ(b1.author, b2.author);
+    EXPECT_EQ(b1.genre, b2.genre);
+    EXPECT_EQ(b1.owner, b2.owner);
 }
 
-TEST_F(BookTest, TestDivideByZero) {
-	EXPECT_THROW(Book::divide(5.0, 0.0), std::invalid_argument);
+// --- User ---
+TEST(UserTest, SerializationDeserialization) {
+    User u1("TestUser", "TestPass");
+    u1.rating = 4.5f;
+    u1.ratingCount = 2;
+    std::stringstream ss;
+    u1.serialize(ss);
+    User u2;
+    u2.deserialize(ss);
+    EXPECT_EQ(u1.username, u2.username);
+    EXPECT_EQ(u1.password, u2.password);
+    EXPECT_FLOAT_EQ(u1.rating, u2.rating);
+    EXPECT_EQ(u1.ratingCount, u2.ratingCount);
 }
 
-/**
- * @brief The main function of the test program.
- *
- * @param argc The number of command-line arguments.
- * @param argv An array of command-line argument strings.
- * @return int The exit status of the program.
- */
+// --- ExchangeRequest ---
+TEST(ExchangeRequestTest, SerializationDeserialization) {
+    ExchangeRequest req1(1, "UserA", "UserB", 0);
+    std::stringstream ss;
+    req1.serialize(ss);
+    ExchangeRequest req2;
+    req2.deserialize(ss);
+    EXPECT_EQ(req1.bookId, req2.bookId);
+    EXPECT_EQ(req1.fromUser, req2.fromUser);
+    EXPECT_EQ(req1.toUser, req2.toUser);
+    EXPECT_EQ(req1.status, req2.status);
+}
+
+// ==========================
+// main() for tests
+// ==========================
 int main(int argc, char** argv) {
-#ifdef ENABLE_BOOK_TEST
-	::testing::InitGoogleTest(&argc, argv);
-	return RUN_ALL_TESTS();
-#else
-	return 0;
-#endif
+    ::testing::InitGoogleTest(&argc, argv);
+    RemoveTestFiles(); // Clean start
+    int ret = RUN_ALL_TESTS();
+    RemoveTestFiles(); // Clean up after tests
+    return ret;
 }
