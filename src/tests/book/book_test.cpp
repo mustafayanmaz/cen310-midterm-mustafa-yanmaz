@@ -323,6 +323,202 @@ TEST(UIOutputTest, ShowUserMenuContainsWelcome) {
     EXPECT_NE(output.find("Welcome, TestUser"), std::string::npos);
 }
 
+//=================================================================
+// 5. Interactive Function Tests (Simulated Input/Output)
+//=================================================================
+
+// For interactive functions, we redirect std::cin and std::cout.
+// To avoid hangs, we provide sufficient newline characters for each pauseScreen call.
+
+// Test registerUserMenu by simulating input.
+TEST(InteractiveTest, RegisterUserMenu) {
+    RemoveTestFiles();
+    // Input: username, password, and extra newline for pauseScreen.
+    std::istringstream input("NewUser\nNewPass\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+    registerUserMenu();
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+    std::string outStr = output.str();
+    EXPECT_NE(outStr.find("Registration successful"), std::string::npos);
+}
+
+// Test loginUserMenu by simulating input.
+TEST(InteractiveTest, LoginUserMenu) {
+    RemoveTestFiles();
+    // Pre-register a user.
+    User u("NewUser", "NewPass");
+    registerUser(u);
+    // Input: username, password, and extra newline for pauseScreen.
+    std::istringstream input("NewUser\nNewPass\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+    std::string loggedIn;
+    bool res = loginUserMenu(loggedIn);
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+    EXPECT_TRUE(res);
+    EXPECT_EQ(loggedIn, "NewUser");
+}
+
+// Test exchangeRequestsMenu by simulating immediate exit (input "4" for exit).
+TEST(InteractiveTest, ExchangeRequestsMenu) {
+    // Input "4\n" to exit immediately.
+    std::istringstream input("4\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+    exchangeRequestsMenu("TestUser");
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+    std::string outStr = output.str();
+    EXPECT_NE(outStr.find("Exchange Requests Menu"), std::string::npos);
+}
+
+// ExchangeRequestsMenu tests for all branches
+
+// Test branch 0: "Send Exchange Request"
+TEST(InteractiveTest, ExchangeRequestsMenu_Branch0_Send) {
+    RemoveTestFiles();
+    // Pre-add a book that is owned by someone else so it is found by search.
+    addBook(Book(1, "TestBook", "TestAuthor", "TestGenre", "OtherUser"));
+    // Simulate input sequence:
+    //  - First, choose option "0" to send an exchange request.
+    //  - Then, in sendExchangeRequestMenu, enter keyword "Test" to match the book,
+    //    choose index "0" (the first matching book),
+    //    and supply enough newlines for pauseScreen.
+    //  - Finally, choose "4" to exit the loop.
+    std::istringstream input("0\nTest\n0\n\n4\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+    exchangeRequestsMenu("TestUser");
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+    std::string outStr = output.str();
+    // Check that the send branch was executed and output indicates that an exchange request was sent.
+    EXPECT_NE(outStr.find("Exchange request sent"), std::string::npos);
+    RemoveTestFiles();
+}
+
+// Test branch 1: "View Received (Pending) Requests"
+TEST(InteractiveTest, ExchangeRequestsMenu_Branch1_ViewReceived) {
+    RemoveTestFiles();
+    // Pre-add a pending exchange request for current user "TestUser".
+    ExchangeRequest req(2, "UserX", "TestUser", 0);
+    sendExchangeRequest(req);
+    // Simulate input:
+    //  - Choose option "1" to view received requests.
+    //  - Provide newline for pauseScreen.
+    //  - Then choose "4" to exit.
+    std::istringstream input("1\n\n4\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+    exchangeRequestsMenu("TestUser");
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+    std::string outStr = output.str();
+    // Check that the output contains details of the pending request.
+    EXPECT_NE(outStr.find("BookID: 2"), std::string::npos);
+    EXPECT_NE(outStr.find("From: UserX"), std::string::npos);
+    RemoveTestFiles();
+}
+
+// Test branch 2: "Accept a Pending Request"
+TEST(InteractiveTest, ExchangeRequestsMenu_Branch2_Accept) {
+    RemoveTestFiles();
+    // Pre-add a pending exchange request for current user.
+    ExchangeRequest req(3, "UserY", "TestUser", 0);
+    sendExchangeRequest(req);
+    // Simulate input:
+    //  - Choose option "2" for accept/decline.
+    //  - Then, input "0" to select the first (and only) pending request.
+    //  - Then input "1" to accept it.
+    //  - Provide newline for pauseScreen.
+    //  - Finally, input "4" to exit.
+    std::istringstream input("2\n0\n1\n\n4\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+    exchangeRequestsMenu("TestUser");
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+    std::string outStr = output.str();
+    // Check that the output indicates acceptance.
+    EXPECT_NE(outStr.find("Request accepted"), std::string::npos);
+    RemoveTestFiles();
+}
+
+// Test branch 2: "Decline a Pending Request"
+TEST(InteractiveTest, ExchangeRequestsMenu_Branch2_Decline) {
+    RemoveTestFiles();
+    // Pre-add a pending exchange request.
+    ExchangeRequest req(4, "UserZ", "TestUser", 0);
+    sendExchangeRequest(req);
+    // Simulate input:
+    //  - Choose option "2" for accept/decline.
+    //  - Then, input "0" to select the first pending request.
+    //  - Then input "2" to decline it.
+    //  - Provide newline for pauseScreen.
+    //  - Finally, input "4" to exit.
+    std::istringstream input("2\n0\n2\n\n4\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+    exchangeRequestsMenu("TestUser");
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+    std::string outStr = output.str();
+    // Check that the output indicates decline.
+    EXPECT_NE(outStr.find("Request declined"), std::string::npos);
+    RemoveTestFiles();
+}
+
+// Test branch 3: "View Sent Requests"
+TEST(InteractiveTest, ExchangeRequestsMenu_Branch3_ViewSent) {
+    RemoveTestFiles();
+    // Pre-add an exchange request sent by TestUser.
+    ExchangeRequest req(5, "TestUser", "OtherUser", 0);
+    sendExchangeRequest(req);
+    // Simulate input:
+    //  - Choose option "3" to view sent requests.
+    //  - Provide newline for pauseScreen.
+    //  - Then choose "4" to exit.
+    std::istringstream input("3\n\n4\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+    exchangeRequestsMenu("TestUser");
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+    std::string outStr = output.str();
+    // Check that the sent request details appear.
+    EXPECT_NE(outStr.find("BookID: 5"), std::string::npos);
+    EXPECT_NE(outStr.find("To: OtherUser"), std::string::npos);
+    RemoveTestFiles();
+}
+
+// Test branch 4: "Return"
+TEST(InteractiveTest, ExchangeRequestsMenu_Branch4_Return) {
+    RemoveTestFiles();
+    // Simulate input: choose option "4" to exit immediately.
+    std::istringstream input("4\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+    exchangeRequestsMenu("TestUser");
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+    std::string outStr = output.str();
+    // Check that the menu was printed and then returned.
+    EXPECT_NE(outStr.find("Exchange Requests Menu"), std::string::npos);
+    RemoveTestFiles();
+}
+
 // ==========================
 // 8. Miscellaneous Tests: clearScreen & pauseScreen (Basic call test)
 // ==========================
