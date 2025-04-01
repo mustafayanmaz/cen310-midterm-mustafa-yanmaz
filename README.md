@@ -84,3 +84,8 @@ Use the provided environment scripts to run tests.
 
 - [Mustafa's GitHub](https://github.com/mustafayanmaz)
   ![mustafa yanmaz](https://avatars.githubusercontent.com/u/114070977?v=4)
+
+  
+ - [Ali's GitHub](https://github.com/AliTopcuu)
+  ![ali ufuktan topcu](https://avatars.githubusercontent.com/u/114070829?v=4)
+
