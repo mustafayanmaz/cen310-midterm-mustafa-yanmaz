@@ -1,8 +1,5 @@
+### Project Description
 # Book Project Library Generation and Testing Template
-
-## Overview
-
-This project provides a suite of modules aimed to show how Cmake used with Ctest. Also combines doxygen documentation and test coverage reports
 
 ## Requirements
 
@@ -12,146 +9,133 @@ This project provides a suite of modules aimed to show how Cmake used with Ctest
 - Visual Studio Communit Edition for Windows Generator
 - Ninja for WSL/Linux
 
-## Setup Development Environment
 
-### Step-1 (Run on Windows, Can Effect on WSL)
+## CEN207  Homework Mustafa Yanmaz And Hayrunnisa Kasımay And Ali Ufuktan Topçu 2024-2025
 
-Run 1-configure-pre-commit.bat file to copy 1-pre-commit script to .git/hooks that checkes. README.md, gitignore and doxygenfiles. Also format code with astyle tool
 
-### Step-2 (Run on Windows, Can Effect on WSL)
+-This project provides a suite of modules aimed to show how Cmake used with Ctest. Also combines doxygen documentation and test coverage reports
 
-If gitignore missing then you can create gitignore with 2-create-git-ignore.bat file run this file.
+#### This is our midterm homework's for CEN310 Parallel Programming Course
 
-### Step-3 (Only Windows)
+---
 
-Install package managers that we will use to install applications. Run 3-install-package-manager.bat to install choco and scoop package managers
+### Releases
 
-### Step-4 (Only Windows)
+[latest release](.github/workflows/cpp.yml)
 
-Run 4-install-windows-enviroment.bat to install required applications. 
+---
 
-### Step-5 (Only WSL)
+### Test Coverage
 
-Open powershell as admin and enter WSL then goto project folder and run 4-install-wsl-environment.sh to setup WSL environment
+Test Coverage
 
+![test](assets/codecoveragelibwin/badge_linecoverage.svg/)
 
+Doxygen Coverage
 
-## Generate Development Environment
+![doxygen](assets/doccoveragelibwin/badge_linecoverage.svg)
 
-You can run 9-clean-configure-app-windows.bat to generate Visual Studio Communit Edition Project of this file. Or You can use Cmake project development with Visual Studio Community Edition
+---
 
+### Installation
 
+run 3rd 4th and 7th bat or sh files
 
-## Build, Test and Package Application on Windows
+---
 
-Run 7-build-app-windows.bat to build, test and generate packed binaries for your application on windows.
+### Usage
 
+---
 
+### Contributing
 
-Also you can run 7-build-doc-windows.bat to only generate documentation and 8-build-test-windows.bat to only test application. 
+### Mustafa Yanmaz:
 
-## Build, Test and Package Application on WSL
+![mustafa yanmaz](https://avatars.githubusercontent.com/u/114070977?v=4)
 
-Run 7-build-app-linux.sh to build, test and generate packed binaries for your application on WSL environment.
 
+### License
 
+There is no license
 
-## Clean Project
+---
 
-You can run 9-clean-project.bat to clean project outputs. 
+### Dependencies
 
+you should run environment scripts 
 
+--- 
 
-## Supported Platforms
+### Features
 
-![Ubuntu badge](assets/badge-ubuntu.svg)
+-User Management:
 
-![macOS badge](assets/badge-macos.svg)
+        User registration and login with secure authentication.
 
-![Windows badge](assets/badge-windows.svg)
+        Rating system for evaluating user interactions.
 
-### Test Coverage Ratios
+-Book Management:
 
-> **Note** : There is a known bug on doxygen following badges are in different folder but has same name for this reason in doxygen html report use same image for all content [Images with same name overwrite each other in output directory · Issue #8362 · doxygen/doxygen · GitHub](https://github.com/doxygen/doxygen/issues/8362). README.md and WebPage show correct badges.
+        Manual book addition with details like title, author, genre, and owner.
 
-| Coverage Type | Windows OS                                                             | Linux OS (WSL-Ubuntu 20.04)                                              |
-| ------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Line Based    | ![Line Coverage](assets/codecoveragelibwin/badge_linecoverage.svg)     | ![Line Coverage](assets/codecoverageliblinux/badge_linecoverage.svg)     |
-| Branch Based  | ![Branch Coverage](assets/codecoveragelibwin/badge_branchcoverage.svg) | ![Branch Coverage](assets/codecoverageliblinux/badge_branchcoverage.svg) |
-| Method Based  | ![Method Coverage](assets/codecoveragelibwin/badge_methodcoverage.svg) | ![Method Coverage](assets/codecoverageliblinux/badge_methodcoverage.svg) |
+        Automated book addition using multi-threading:
 
-### Documentation Coverage Ratios
+        Thread-Per-Book: Each book is added by a separate thread.
 
-|                    | Windows OS                                                        | Linux OS (WSL-Ubuntu 20.04)                                         |
-| ------------------ | ----------------------------------------------------------------- | ------------------------------------------------------------------- |
-| **Coverage Ratio** | ![Line Coverage](assets/doccoveragelibwin/badge_linecoverage.svg) | ![Line Coverage](assets/doccoverageliblinux/badge_linecoverage.svg) |
+        Improved Parallel For Loop: Uses OpenMP to add multiple books concurrently with controlled thread count.
 
+        Book deletion options (single and multiple deletion based on ID range).
 
+-Search and Listing:
 
-#### Install Test Results to HTML Converter
+        Comprehensive listing of all books.
 
-We are using [GitHub - inorton/junit2html: Turn Junit XML reports into self contained HTML reports](https://github.com/inorton/junit2html) to convert junit xml formatted test results to HTML page for reporting also we store logs during test. Use following commands to install this module with pip
+        Search functionality by title, author, or genre.
 
-```bash
-pip install junit2html
-```
+        Performance testing for heavy load listing and search operations using parallel programming techniques.
 
-### Github Actions
+-Exchange and Transaction System:
 
-This project also compiled and tested with Github Actions. If there is a missing setup or problem follow github action script for both Windows and WSL under
+        Exchange request functionality for book trading.
 
-`.github/workflows/cpp.yml`
+        Options to send, view, and process exchange requests.
 
-Github actions take too much time more than 1 hour take to complete build for Windows, MacOS and Linux. Also its paid operation for this reason we use offline batch scripts easy to use. 
+        Automatic transaction recording upon acceptance of exchange requests.
 
-### Build App on Windows
+-Data Security:
 
-We have already configured script for build operations. `7-build-app-windows.bat` have complete all required tasks and copy outputs to release folder.  
+        Encrypted I/O operations for secure storage of book and user data.
 
-**Operation Completed in 11-15 minutes.**
+-Parallel Programming Details:
 
-- Clean project outputs
+        Utilizes multi-threading and OpenMP to accelerate computational tasks.
 
-- Create required folders
+        Parallel operations in auto-add and search performance tests demonstrate significant performance improvements on multi-core systems.
 
-- Run doxygen for documentation
+        Heavy load tests perform concurrent mathematical computations to simulate real-world performance under load.
 
-- Run coverxygen for document coverage report
 
-- Run Report Generator for Documentation Coverage Report
 
-- Configure project for Visual Studio Community Edition
+---
 
-- Build Project Debug and Release
+### Testing
 
-- Install/Copy Required Library and Headers
+---
 
-- Run Tests 
+### Support
 
-- Run OpeCppCoverage for Coverage Data Collection
+### Uğur Coruh:
 
-- Run Reportgenerator for Test Coverage Report
+![ugurcoruh](https://avatars.githubusercontent.com/u/7415667?v=4)
 
-- Copy output report to webpage folder
+---
 
-- Run mkdocs to build webpage
+### Contact
 
-- Compress outputs to release folder, everything is ready for deployment. 
+#### [Mustafa's Github](https://github.com/mustafayanmaz)
 
-### Build App on WSL/Linux
+---
 
-We are running WSL on Windows 10 and solve our virtual machine problem. We make cross-platform development. After development before commit we run and test app on Windows and WSL with this scripts. To run on WSL you need to install WSL first. 
+### Acknowledgments
 
-you can use our public notes
-
-- https://github.com/coruhtech/vs-docker-wsl-cpp-development
-
-- [GitHub - ucoruh/ns3-wsl-win10-setup: ns3 windows 10 WSL2 setup and usage](https://github.com/ucoruh/ns3-wsl-win10-setup)
-
-After WSL installation, right click and open WSL bash and run `7-build-app-linux.sh` this will provide similart task with windows and will generate report and libraries on release folder. 
-
-
-
-----
-
-$End-Of-File$
+---
