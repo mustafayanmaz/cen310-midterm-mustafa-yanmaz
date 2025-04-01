@@ -732,7 +732,175 @@ TEST(InteractiveTest, DeleteBooksMenu) {
     RemoveTestFiles();
 }
 
+// DeleteBooksMenu tests
 
+// Test for branch 1: Delete Single Book
+TEST(InteractiveTest, DeleteBooksMenu_SingleDeletion) {
+    RemoveTestFiles();
+    // Pre-add two books: one with ID=1 and one with ID=2.
+    addBook(Book(1, "Book1", "Author1", "Genre1", "TestUser"));
+    addBook(Book(2, "Book2", "Author2", "Genre2", "TestUser"));
+
+    // Simulate input for branch 1:
+    // "1" -> choose "Delete Single Book"
+    // Then the book list is printed and prompt "Enter the ID of the book to delete:" appears.
+    // We input "1" to delete book with ID=1.
+    // Then an extra newline for pauseScreen.
+    // Finally, the function ends.
+    std::istringstream input("1\n1\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+
+    deleteBooksMenu();
+
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+
+    std::string outStr = output.str();
+    // Check that output indicates deletion of the book.
+    EXPECT_NE(outStr.find("Book with ID 1 deleted"), std::string::npos);
+    // Verify that only one book remains (ID=2).
+    auto books = loadBooks();
+    ASSERT_EQ(books.size(), 1);
+    EXPECT_EQ(books[0].id, 2);
+    RemoveTestFiles();
+}
+
+// Test for branch 2: Delete Multiple Books
+TEST(InteractiveTest, DeleteBooksMenu_MultipleDeletion) {
+    RemoveTestFiles();
+    // Pre-add five books with IDs 1 to 5.
+    for (int i = 1; i <= 5; i++) {
+        addBook(Book(i, "Book" + std::to_string(i), "Author" + std::to_string(i),
+            "Genre" + std::to_string(i), "TestUser"));
+    }
+
+    // Simulate input for branch 2:
+    // "2" -> choose "Delete Multiple Books"
+    // Then prompt "Enter the lower bound ID:" -> input "2"
+    // Then prompt "Enter the upper bound ID:" -> input "4"
+    // Then extra newline for pauseScreen.
+    std::istringstream input("2\n2\n4\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+
+    deleteBooksMenu();
+
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+
+    std::string outStr = output.str();
+    // Expected: 3 books deleted in range [2, 4].
+    EXPECT_NE(outStr.find("3 books deleted in the range [2, 4]"), std::string::npos);
+    // Verify that only books with IDs 1 and 5 remain.
+    auto books = loadBooks();
+    ASSERT_EQ(books.size(), 2);
+    EXPECT_EQ(books[0].id, 1);
+    EXPECT_EQ(books[1].id, 5);
+    RemoveTestFiles();
+}
+
+// Test for branch 3: Invalid Choice
+TEST(InteractiveTest, DeleteBooksMenu_InvalidChoice) {
+    RemoveTestFiles();
+    // No pre-added books needed.
+    // Simulate input:
+    // "9" -> invalid choice
+    // Then extra newline for pauseScreen.
+    std::istringstream input("9\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+
+    deleteBooksMenu();
+
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+
+    std::string outStr = output.str();
+    // Expect output to contain "Invalid choice."
+    EXPECT_NE(outStr.find("Invalid choice"), std::string::npos);
+    RemoveTestFiles();
+}
+
+
+// Test heavyLoadListingTest to ensure it runs.
+TEST(InteractiveTest, HeavyLoadListingTest) {
+    RemoveTestFiles();
+    // Pre-add some books.
+    for (int i = 1; i <= 5; i++) {
+        addBook(Book(i, "Book" + std::to_string(i), "Author", "Genre", "TestUser"));
+    }
+    // Input: provide a newline for pauseScreen.
+    std::istringstream input("\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+    heavyLoadListingTest();
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+    std::string outStr = output.str();
+    EXPECT_NE(outStr.find("Heavy Load Book Listing Performance:"), std::string::npos);
+    RemoveTestFiles();
+}
+
+// Test autoAddPerformanceTest to ensure it runs.
+TEST(InteractiveTest, AutoAddPerformanceTest) {
+    RemoveTestFiles();
+    // Use small test count for faster testing.
+    std::istringstream input("\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+    autoAddPerformanceTest();
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+    std::string outStr = output.str();
+    EXPECT_NE(outStr.find("Auto add performance results saved"), std::string::npos);
+    RemoveTestFiles();
+}
+
+// Test searchPerformanceTest to ensure it runs.
+TEST(InteractiveTest, SearchPerformanceTest) {
+    RemoveTestFiles();
+    // Pre-add some books with "Auto" in the title.
+    for (int i = 1; i <= 5; i++) {
+        addBook(Book(i, "AutoBook" + std::to_string(i), "Author", "Genre", "TestUser"));
+    }
+    std::istringstream input("\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+    searchPerformanceTest();
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+    std::string outStr = output.str();
+    EXPECT_NE(outStr.find("Search Performance Test with keyword:"), std::string::npos);
+    RemoveTestFiles();
+}
+
+// Test rateUserMenu by simulating input.
+TEST(InteractiveTest, RateUserMenu) {
+    RemoveTestFiles();
+    // Pre-register a user to be rated.
+    User u("RateTarget", "pass");
+    registerUser(u);
+    // Input: username to rate, rating value, and extra newline.
+    std::istringstream input("RateTarget\n4.0\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+    rateUserMenu("AnyUser");
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+    auto usersVec = loadUsers();
+    ASSERT_FALSE(usersVec.empty());
+    EXPECT_NEAR(usersVec[0].rating, 4.0f, 0.001);
+    EXPECT_EQ(usersVec[0].ratingCount, 1);
+    RemoveTestFiles();
+}
 // ==========================
 // 8. Miscellaneous Tests: clearScreen & pauseScreen (Basic call test)
 // ==========================
