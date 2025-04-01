@@ -21,6 +21,7 @@ source_group("src" FILES ${LIB_SOURCES})
 add_library(${LIBNAME} STATIC ${LIB_HEADERS} ${LIB_SOURCES}) # for dynamic library use SHARED
 
 target_include_directories(${LIBNAME} PUBLIC
+target_link_libraries(${LIBNAME} PRIVATE OpenMP::OpenMP_CXX)
 						   ${CMAKE_CURRENT_SOURCE_DIR}/../utility/header
 						   ${CMAKE_CURRENT_SOURCE_DIR}/header)
 

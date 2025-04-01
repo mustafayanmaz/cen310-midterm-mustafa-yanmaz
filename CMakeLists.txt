@@ -4,6 +4,7 @@ project(bookapp)
 
 set(ROOT src)
 
+find_package(OpenMP REQUIRED)
 # Print useful information
 message(STATUS "[${ROOT}] CMake version ${CMAKE_VERSION}")
 message(STATUS "[${ROOT}] System ${CMAKE_SYSTEM_NAME}")
@@ -31,6 +32,8 @@ enable_testing()
 
 # Set build configurations
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
+
+find_package(OpenMP REQUIRED)
 
 #crypto++ settings, disable testing, documentation generation, install and DLL generation
 set(CRYPTOPP_BUILD_TESTING OFF)
