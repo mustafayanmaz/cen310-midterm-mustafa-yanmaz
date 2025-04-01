@@ -1,3 +1,6 @@
+/**
+ * @brief Include guard for the book header file.
+ */
 #ifndef BOOK_H
 #define BOOK_H
 
@@ -6,18 +9,44 @@
 #include <iostream>
 #include <fstream>
 
-// Encryption key constant
+
+ /**
+  * @brief Encryption key constant used for XOR encryption.
+  */
 const char ENCRYPTION_KEY = 0xAA;
 
 // ---------------------------
 // Class Definitions
 // ---------------------------
+
+/**
+ * @brief Represents a book in the exchange platform.
+ */
 class Book {
 public:
+    /**
+     * @brief The unique identifier of the book.
+     */
     int id;
+
+    /**
+     * @brief The title of the book.
+     */
     std::string title;
+
+    /**
+     * @brief The author of the book.
+     */
     std::string author;
+
+    /**
+     * @brief The genre of the book.
+     */
     std::string genre;
+
+    /**
+     * @brief The owner of the book.
+     */
     std::string owner;
 
     Book();
@@ -27,11 +56,30 @@ public:
     void deserialize(std::istream& is);
 };
 
+
+/**
+ * @brief Represents a user in the exchange platform.
+ */
 class User {
 public:
+    /**
+     * @brief The username of the user.
+     */
     std::string username;
+
+    /**
+     * @brief The password of the user.
+     */
     std::string password;
+
+    /**
+     * @brief The average rating of the user.
+     */
     float rating;
+
+    /**
+     * @brief The number of ratings received by the user.
+     */
     int ratingCount;
 
     User();
@@ -41,11 +89,29 @@ public:
     void deserialize(std::istream& is);
 };
 
+/**
+ * @brief Represents an exchange request for a book.
+ */
 class ExchangeRequest {
 public:
+    /**
+     * @brief The identifier of the book involved in the exchange.
+     */
     int bookId;
+
+    /**
+     * @brief The username of the user initiating the exchange.
+     */
     std::string fromUser;
+
+    /**
+     * @brief Username of the user receiving the book.
+     */
     std::string toUser;
+
+    /**
+     * @brief Date of the transaction.
+     */
     int status; // 0: pending, 1: accepted, -1: declined
 
     ExchangeRequest();
@@ -55,11 +121,29 @@ public:
     void deserialize(std::istream& is);
 };
 
+/**
+ * @brief Class representing a transaction record for a book exchange.
+ */
 class Transaction {
 public:
+    /**
+     * @brief Identifier of the book involved in the transaction.
+     */
     int bookId;
+
+    /**
+     * @brief Username of the user sending the book.
+     */
     std::string fromUser;
+
+    /**
+     * @brief Username of the user receiving the book.
+     */
     std::string toUser;
+
+    /**
+     * @brief Date of the transaction.
+     */
     std::string date;
 
     Transaction();

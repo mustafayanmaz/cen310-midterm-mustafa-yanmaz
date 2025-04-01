@@ -9,8 +9,16 @@
 
 #include "commonTypes.h"
 
+ /**
+  * @namespace Coruh
+  * @brief The Coruh namespace.
+  */
 namespace Coruh
 {
+	/**
+	 * @namespace Utility
+	 * @brief Provides utility functions and classes.
+	 */
     namespace Utility
     {
         /**

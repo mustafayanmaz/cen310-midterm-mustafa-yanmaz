@@ -1,6 +1,18 @@
-#include "book.h"
-#include <iostream>
 
+#include <iostream>
+/**
+ * @brief Includes the header file for the Book Exchange Platform.
+ */
+#include "book.h"
+
+ /**
+  * @brief Entry point of the Book Exchange Platform application.
+  *
+  * This function handles the main menu and user interactions for the application,
+  * including user registration, login, book management, and various performance tests.
+  *
+  * @return int Exit status code.
+  */
 int main() {
     std::string currentUser = "";
     int choice;
