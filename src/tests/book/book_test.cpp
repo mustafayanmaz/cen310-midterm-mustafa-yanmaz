@@ -115,6 +115,104 @@ TEST(FileOpsTest, RegisterAndLoginUser) {
     RemoveTestFiles();
 }
 
+// Test for registerUserMenu() - Successful Registration
+TEST(InteractiveTest, RegisterUserMenu_Success) {
+    RemoveTestFiles();
+    // Simulate input: new username, new password, and extra newline for pauseScreen.
+    std::istringstream input("NewUser\nNewPass\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+
+    registerUserMenu();
+
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+
+    std::string outStr = output.str();
+    // Expect that the output contains a successful registration message.
+    EXPECT_NE(outStr.find("Registration successful"), std::string::npos);
+    RemoveTestFiles();
+}
+
+// Test for registerUserMenu() - Duplicate Registration (Failure)
+TEST(InteractiveTest, RegisterUserMenu_Failure_Duplicate) {
+    RemoveTestFiles();
+    // First registration should succeed.
+    {
+        std::istringstream input("DupUser\nPass1\n\n");
+        std::ostringstream output;
+        auto oldCin = std::cin.rdbuf(input.rdbuf());
+        auto oldCout = std::cout.rdbuf(output.rdbuf());
+
+        registerUserMenu();
+
+        std::cin.rdbuf(oldCin);
+        std::cout.rdbuf(oldCout);
+    }
+    // Second registration with same username should fail.
+    {
+        std::istringstream input("DupUser\nPass1\n\n");
+        std::ostringstream output;
+        auto oldCin = std::cin.rdbuf(input.rdbuf());
+        auto oldCout = std::cout.rdbuf(output.rdbuf());
+
+        registerUserMenu();
+
+        std::cin.rdbuf(oldCin);
+        std::cout.rdbuf(oldCout);
+        std::string outStr = output.str();
+        EXPECT_NE(outStr.find("Registration failed"), std::string::npos);
+    }
+    RemoveTestFiles();
+}
+
+// Test for loginUserMenu() - Successful Login
+TEST(InteractiveTest, LoginUserMenu_Success) {
+    RemoveTestFiles();
+    // Pre-register a user.
+    User u("LoginUser", "LoginPass");
+    registerUser(u);
+
+    // Simulate input: correct username, correct password, and extra newline for pauseScreen.
+    std::istringstream input("LoginUser\nLoginPass\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+
+    std::string loggedIn;
+    bool result = loginUserMenu(loggedIn);
+
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(loggedIn, "LoginUser");
+    RemoveTestFiles();
+}
+
+// Test for loginUserMenu() - Failed Login (Wrong Password)
+TEST(InteractiveTest, LoginUserMenu_Failure) {
+    RemoveTestFiles();
+    // Pre-register a user.
+    User u("LoginUser", "LoginPass");
+    registerUser(u);
+
+    // Simulate input: correct username, wrong password, and extra newline for pauseScreen.
+    std::istringstream input("LoginUser\nWrongPass\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+
+    std::string loggedIn;
+    bool result = loginUserMenu(loggedIn);
+
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+
+    EXPECT_FALSE(result);
+    RemoveTestFiles();
+}
 TEST(FileOpsTest, SaveLoadExchangeRequests) {
     RemoveTestFiles();
     std::vector<ExchangeRequest> reqs;
@@ -231,6 +329,60 @@ TEST(UIOutputTest, ShowUserMenuContainsWelcome) {
 TEST(MiscTest, ClearAndPauseDoNotThrow) {
     EXPECT_NO_THROW(clearScreen());
     // pauseScreen() waits for user input, so it is not called here.
+}
+
+
+// This test spawns the bookapp executable, provides input "3\n" to exit,
+// and verifies that the output contains "Exiting application.".
+TEST(BookAppMainTest, ExitsOnChoice3) {
+    RemoveTestFiles(); // Clean any prior test files
+
+    // Create a temporary input file with the simulated user input.
+    // In the main menu, when currentUser is empty, option 3 causes exit.
+    const std::string tempInputFile = "temp_input.txt";
+    {
+        std::ofstream ofs(tempInputFile);
+        ofs << "3\n"; // Choose option 3 to exit immediately.
+    }
+
+    // Build the command to run the bookapp executable with input redirection.
+    // Adjust the executable name if needed (for Windows use "bookapp.exe").
+#ifdef _WIN32
+    std::string command = "bookapp.exe < " + tempInputFile;
+#else
+    std::string command = "./bookapp < " + tempInputFile;
+#endif
+
+    // Open a pipe to run the command.
+#if defined(_WIN32)
+    FILE* pipe = _popen(command.c_str(), "r");
+#else
+    FILE* pipe = popen(command.c_str(), "r");
+#endif
+    ASSERT_NE(pipe, nullptr) << "Failed to open pipe to run the executable.";
+
+    // Read all output from the executable.
+    char buffer[128];
+    std::string output;
+    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        output += buffer;}
+
+    // Close the pipe and get exit status.
+#if defined(_WIN32)
+    int exitCode = _pclose(pipe);
+#else
+    int exitCode = pclose(pipe);
+#endif
+
+    // Check that the output contains "Exiting application."
+    EXPECT_NE(output.find("Exiting application."), std::string::npos)
+        << "Output did not contain expected exit message.";
+    // Also, expect that exit code is 0.
+    EXPECT_EQ(exitCode, 0);
+
+    // Clean up the temporary input file.
+    std::remove(tempInputFile.c_str());
+    RemoveTestFiles();
 }
 
 // ==========================

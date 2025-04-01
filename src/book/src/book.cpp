@@ -133,14 +133,11 @@ bool loginUserMenu(std::string& loggedInUser) {
         std::cout << "Login successful." << std::endl;
         loggedInUser = username;
         pauseScreen();
-        return true;
-    }
+        return true;}
     else {
         std::cout << "Login failed. Please try again." << std::endl;
         pauseScreen();
-        return false;
-    }
-}
+        return false;}}
 
 void Book::serialize(std::ostream& os) const {
     os.write(reinterpret_cast<const char*>(&id), sizeof(id));
@@ -250,8 +247,7 @@ void exchangeRequestsMenu(const std::string& currentUser) {
                 }
             }
             if (indexes.empty()) {
-                std::cout << "No pending requests to process.\n";
-            }
+                std::cout << "No pending requests to process.\n";}
             else {
                 std::cout << "Select index to accept/decline: ";
                 int sel;
@@ -309,8 +305,7 @@ void exchangeRequestsMenu(const std::string& currentUser) {
             pauseScreen();
         }
         else if (choice == 4) {
-            break; // Return to user menu
-        }
+            break;  }
         else {
             std::cout << "Invalid choice.\n";
             pauseScreen();
@@ -590,7 +585,6 @@ void saveTransactions(const std::vector<Transaction>& transList) {
 void addBookManually(const std::string& currentUser) {
     std::string title, author, genre;
     std::cout << "Enter book title: ";
-    std::cin.ignore();
     std::getline(std::cin, title);
     std::cout << "Enter book author: ";
     std::getline(std::cin, author);
@@ -894,9 +888,7 @@ void rateUserMenu(const std::string& currentUser) {
             u.rating = (u.rating * u.ratingCount + ratingVal) / (u.ratingCount + 1);
             u.ratingCount++;
             found = true;
-            break;
-        }
-    }
+            break;}}
     if (found) {
         saveUsers(allUsers);
         std::cout << "User rated successfully.\n";
