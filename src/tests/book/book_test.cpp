@@ -519,6 +519,220 @@ TEST(InteractiveTest, ExchangeRequestsMenu_Branch4_Return) {
     RemoveTestFiles();
 }
 
+TEST(InteractiveTest, ExchangeRequestsMenu_Branch2_InvalidIndex) {
+    RemoveTestFiles();
+    // Pre-add a pending exchange request for current user "TestUser".
+    ExchangeRequest req(6, "UserW", "TestUser", 0);
+    sendExchangeRequest(req);
+
+    // Now, simulate:
+    // Option "2" for Accept/Decline,
+    // then input "5" as the index (invalid if only one request exists),
+    // then extra newline for pauseScreen,
+    // then "4" to exit the menu.
+    std::istringstream input("2\n5\n\n4\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+
+    exchangeRequestsMenu("TestUser");
+
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+
+    std::string outStr = output.str();
+    // Expect that the output contains "Invalid selection." message.
+    EXPECT_NE(outStr.find("Invalid selection"), std::string::npos);
+    RemoveTestFiles();
+}
+
+// Test the default branch: When an invalid top-level choice is entered.
+// For example, if the user enters a number not equal to 0, 1, 2, 3, or 4.
+TEST(InteractiveTest, ExchangeRequestsMenu_InvalidChoiceTop) {
+    RemoveTestFiles();
+    // Simulate input:
+    // Enter an invalid option "7" (valid options are 0-4),
+    // then extra newline for pauseScreen,
+    // then "4" to exit.
+    std::istringstream input("7\n\n4\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+
+    exchangeRequestsMenu("TestUser");
+
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+
+    std::string outStr = output.str();
+    // Expect that "Invalid choice." is printed.
+    EXPECT_NE(outStr.find("Invalid choice"), std::string::npos);
+    RemoveTestFiles();
+}
+
+// Test sendExchangeRequestMenu by simulating search and selection.
+TEST(InteractiveTest, SendExchangeRequestMenu) {
+    RemoveTestFiles();
+    // Pre-add a book owned by another user.
+    addBook(Book(1, "SampleBook", "SampleAuthor", "SampleGenre", "OtherUser"));
+    // Input: keyword "Sample", then select index 0, then extra newline.
+    std::istringstream input("Sample\n0\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+    sendExchangeRequestMenu("TestUser");
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+    std::string outStr = output.str();
+    EXPECT_NE(outStr.find("Exchange request sent"), std::string::npos);
+    RemoveTestFiles();
+}
+
+// Test for sendExchangeRequestMenu: When no matching books are found (empty branch)
+TEST(InteractiveTest, SendExchangeRequestMenu_Empty) {
+    RemoveTestFiles();
+    // Add a book owned by the current user ("TestUser") so that it is filtered out.
+    addBook(Book(1, "TestBook", "Author", "Genre", "TestUser"));
+
+    // Simulate input:
+    // - Enter keyword "Test" (which matches the book title but the book is owned by currentUser)
+    // - Then provide extra newlines for pauseScreen.
+    std::istringstream input("Test\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+
+    sendExchangeRequestMenu("TestUser");
+
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+
+    std::string outStr = output.str();
+    // Expect that the output indicates no matching books found.
+    EXPECT_NE(outStr.find("No matching books found or you already own them."), std::string::npos);
+    RemoveTestFiles();
+}
+
+// Test for sendExchangeRequestMenu: When an invalid selection is made
+TEST(InteractiveTest, SendExchangeRequestMenu_InvalidSelection) {
+    RemoveTestFiles();
+    // Add a book owned by someone else so that it will be included.
+    addBook(Book(1, "TestBook", "Author", "Genre", "OtherUser"));
+
+    // Simulate input:
+    // - Enter keyword "Test" to match the book.
+    // - Then, when prompted for selection, enter an invalid index "1" (only index 0 is valid).
+    // - Then extra newline for pauseScreen.
+    std::istringstream input("Test\n1\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+
+    sendExchangeRequestMenu("TestUser");
+
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+
+    std::string outStr = output.str();
+    // Expect that the output contains "Invalid selection."
+    EXPECT_NE(outStr.find("Invalid selection"), std::string::npos);
+    RemoveTestFiles();
+}
+// Test addBookManually by simulating input.
+TEST(InteractiveTest, AddBookManually) {
+    RemoveTestFiles();
+    // Input: book title, author, genre, then extra newline.
+    std::istringstream input("BookTitle\nBookAuthor\nBookGenre\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+    addBookManually("TestUser");
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+    auto books = loadBooks();
+    EXPECT_EQ(books.size(), 1);
+    EXPECT_EQ(books[0].title, "BookTitle");
+    RemoveTestFiles();
+}
+
+TEST(InteractiveTest, ListAllBooks) {
+    RemoveTestFiles();
+    // Pre-add a book.
+    addBook(Book(1, "Book1", "Author1", "Genre1", "TestUser"));
+    // Provide enough newlines for pauseScreen (which calls cin.ignore() and cin.get())
+    std::istringstream input("\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+
+    listAllBooks();  // This function prints the book list and then calls pauseScreen()
+
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+
+    std::string outStr = output.str();
+    EXPECT_NE(outStr.find("Book List:"), std::string::npos);
+    RemoveTestFiles();
+}
+
+// Test searchBooksMenu by simulating input (search by title).
+TEST(InteractiveTest, SearchBooksMenu) {
+    RemoveTestFiles();
+    // Pre-add books.
+    addBook(Book(1, "UniqueTitle", "Author1", "Genre1", "TestUser"));
+    addBook(Book(2, "OtherBook", "Author2", "Genre2", "TestUser"));
+    // Input: choice 1 (title), keyword "Unique", then extra newline.
+    std::istringstream input("1\nUnique\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+    searchBooksMenu();
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+    std::string outStr = output.str();
+    EXPECT_NE(outStr.find("UniqueTitle"), std::string::npos);
+    RemoveTestFiles();
+}
+
+
+TEST(InteractiveTest, TransactionHistoryMenu) {
+    RemoveTestFiles();
+    // Pre-add a transaction.
+    Transaction t(1, "UserA", "UserB", "2025-03-28 12:34:56");
+    addTransaction(t);
+    // Provide enough newlines for pauseScreen
+    std::istringstream input("\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+
+    transactionHistoryMenu();  // This prints the transaction history and calls pauseScreen()
+
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+
+    std::string outStr = output.str();
+    EXPECT_NE(outStr.find("Transaction History:"), std::string::npos);
+    RemoveTestFiles();
+}
+// Test deleteBooksMenu by simulating input (choose exit option "4").
+TEST(InteractiveTest, DeleteBooksMenu) {
+    RemoveTestFiles();
+    // Pre-add a book.
+    addBook(Book(1, "BookToDelete", "Author", "Genre", "TestUser"));
+    // Input: option "4" to exit.
+    std::istringstream input("4\n\n");
+    std::ostringstream output;
+    auto oldCin = std::cin.rdbuf(input.rdbuf());
+    auto oldCout = std::cout.rdbuf(output.rdbuf());
+    deleteBooksMenu();
+    std::cin.rdbuf(oldCin);
+    std::cout.rdbuf(oldCout);
+    EXPECT_EQ(loadBooks().size(), 1); // Book remains.
+    RemoveTestFiles();
+}
+
+
 // ==========================
 // 8. Miscellaneous Tests: clearScreen & pauseScreen (Basic call test)
 // ==========================
