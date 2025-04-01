@@ -1,141 +1,86 @@
-### Project Description
-# Book Project Library Generation and Testing Template
+# Book Project Library - Parallel Programming Implementation
 
-## Requirements
+## CEN310 Parallel Programming Course - Midterm Project (2024-2025)
+
+**Contributors:**
+- Mustafa Yanmaz
+- Hayrunnisa Kasımay
+- Ali Ufuktan Topçu
+
+## Project Description
+
+This project demonstrates a Book Management System with parallel programming concepts. It showcases how CMake can be used with CTest, and includes Doxygen documentation and test coverage reports.
+
+## Technical Requirements
 
 - CMake >= 3.12
 - C++ Standard >= 11
 - GoogleTest (for testing modules)
-- Visual Studio Communit Edition for Windows Generator
-- Ninja for WSL/Linux
+- Visual Studio Community Edition (for Windows)
+- Ninja (for WSL/Linux)
 
-
-## CEN207  Homework Mustafa Yanmaz And Hayrunnisa Kasımay And Ali Ufuktan Topçu 2024-2025
-
-
--This project provides a suite of modules aimed to show how Cmake used with Ctest. Also combines doxygen documentation and test coverage reports
-
-#### This is our midterm homework's for CEN310 Parallel Programming Course
-
----
+## Status
 
 ### Releases
+[Latest Release](.github/workflows/cpp.yml)
 
-[latest release](.github/workflows/cpp.yml)
+### Coverage Reports
 
----
-
-### Test Coverage
-
-Test Coverage
-
+**Test Coverage:**
 ![test](assets/codecoveragelibwin/badge_linecoverage.svg/)
 
-Doxygen Coverage
-
+**Doxygen Coverage:**
 ![doxygen](assets/doccoveragelibwin/badge_linecoverage.svg)
 
----
+## Installation
 
-### Installation
+Run the 3rd, 4th, and 7th batch or shell files to set up the environment.
 
-run 3rd 4th and 7th bat or sh files
+## Features
 
----
+### User Management
+- User registration and login with secure authentication
+- Rating system for evaluating user interactions
 
-### Usage
+### Book Management
+- **Manual Book Addition:** Add books with details (title, author, genre, owner)
+- **Parallel Book Addition:**
+  - Thread-Per-Book: Each book added by a separate thread
+  - OpenMP Implementation: Controlled thread count for concurrent book addition
+- Book deletion options (single or multiple by ID range)
 
----
+### Search and Listing
+- Comprehensive book listing functionality
+- Search by title, author, or genre
+- Performance testing for heavy load operations using parallel techniques
 
-### Contributing
+### Exchange and Transaction System
+- Book trading through exchange requests
+- Options to send, view, and process exchange requests
+- Automatic transaction recording
 
-### Mustafa Yanmaz:
+### Data Security
+- Encrypted I/O operations for secure data storage
 
-![mustafa yanmaz](https://avatars.githubusercontent.com/u/114070977?v=4)
+## Parallel Programming Implementation Details
 
+This project demonstrates various parallel programming concepts:
+- Multi-threading for independent book operations
+- OpenMP for controlled concurrent operations
+- Performance improvements demonstrated through heavy load testing
+- Concurrent mathematical computations to simulate real-world performance conditions
 
-### License
+## Testing
 
-There is no license
+Use the provided environment scripts to run tests.
 
----
+## Support & Supervision
 
-### Dependencies
+**Supervisor:**
+- Uğur Coruh
+  ![ugurcoruh](https://avatars.githubusercontent.com/u/7415667?v=4)
 
-you should run environment scripts 
+## Contact
 
---- 
-
-### Features
-
--User Management:
-
-        User registration and login with secure authentication.
-
-        Rating system for evaluating user interactions.
-
--Book Management:
-
-        Manual book addition with details like title, author, genre, and owner.
-
-        Automated book addition using multi-threading:
-
-        Thread-Per-Book: Each book is added by a separate thread.
-
-        Improved Parallel For Loop: Uses OpenMP to add multiple books concurrently with controlled thread count.
-
-        Book deletion options (single and multiple deletion based on ID range).
-
--Search and Listing:
-
-        Comprehensive listing of all books.
-
-        Search functionality by title, author, or genre.
-
-        Performance testing for heavy load listing and search operations using parallel programming techniques.
-
--Exchange and Transaction System:
-
-        Exchange request functionality for book trading.
-
-        Options to send, view, and process exchange requests.
-
-        Automatic transaction recording upon acceptance of exchange requests.
-
--Data Security:
-
-        Encrypted I/O operations for secure storage of book and user data.
-
--Parallel Programming Details:
-
-        Utilizes multi-threading and OpenMP to accelerate computational tasks.
-
-        Parallel operations in auto-add and search performance tests demonstrate significant performance improvements on multi-core systems.
-
-        Heavy load tests perform concurrent mathematical computations to simulate real-world performance under load.
-
-
-
----
-
-### Testing
-
----
-
-### Support
-
-### Uğur Coruh:
-
-![ugurcoruh](https://avatars.githubusercontent.com/u/7415667?v=4)
-
----
-
-### Contact
-
-#### [Mustafa's Github](https://github.com/mustafayanmaz)
-
----
-
-### Acknowledgments
-
----
+- [Mustafa's GitHub](https://github.com/mustafayanmaz)
+  ![mustafa yanmaz](https://avatars.githubusercontent.com/u/114070977?v=4)
