@@ -1,4 +1,7 @@
-// book_test.cpp
+/**
+ * @file book_test.cpp
+ * @brief Test file for the book exchange platform using Google Test framework.
+ */
 
 #include "book.h"
 #include <gtest/gtest.h>
@@ -6,14 +9,20 @@
 #include <cstdio>    // for remove()
 #include <ctime>
 
-// Helper function: Format date/time using strftime (avoiding std::put_time)
+ /**
+  * @brief Formats a given time_t value into a human-readable date and time string.
+  * @param t The time_t value representing the time to format.
+  * @return A string containing the formatted date and time.
+  */
 std::string formatDateTime(std::time_t t) {
     char buf[100];
     std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", std::localtime(&t));
     return std::string(buf);
 }
 
-// Helper function: Remove test files
+/**
+ * @brief Removes test files used during testing to ensure a clean environment.
+ */
 void RemoveTestFiles() {
     std::remove("books.dat");
     std::remove("users.dat");
@@ -24,6 +33,10 @@ void RemoveTestFiles() {
 // ==========================
 // 1. Encryption Tests
 // ==========================
+
+/**
+ * @brief Tests the basic encryption and decryption functionality.
+ */
 TEST(EncryptionTest, BasicEncryption) {
     std::string original = "Hello, World!";
     std::string encrypted = encryptString(original);
@@ -36,6 +49,10 @@ TEST(EncryptionTest, BasicEncryption) {
 // ==========================
 
 // --- Book ---
+
+/**
+ * @brief Tests the serialization and deserialization of a Book object.
+ */
 TEST(BookTest, SerializationDeserialization) {
     Book b1(1, "Test Book", "Test Author", "Test Genre", "TestUser");
     std::stringstream ss;
@@ -49,7 +66,11 @@ TEST(BookTest, SerializationDeserialization) {
     EXPECT_EQ(b1.owner, b2.owner);
 }
 
-// --- User ---
+// --- User --
+
+/**
+ * @brief Tests the serialization and deserialization of a User object.
+ */
 TEST(UserTest, SerializationDeserialization) {
     User u1("TestUser", "TestPass");
     u1.rating = 4.5f;
@@ -64,7 +85,11 @@ TEST(UserTest, SerializationDeserialization) {
     EXPECT_EQ(u1.ratingCount, u2.ratingCount);
 }
 
-// --- ExchangeRequest ---
+// --- ExchangeRequest --
+
+/**
+ * @brief Tests the serialization and deserialization of an ExchangeRequest object.
+ */
 TEST(ExchangeRequestTest, SerializationDeserialization) {
     ExchangeRequest req1(1, "UserA", "UserB", 0);
     std::stringstream ss;
@@ -77,7 +102,11 @@ TEST(ExchangeRequestTest, SerializationDeserialization) {
     EXPECT_EQ(req1.status, req2.status);
 }
 
-// --- Transaction ---
+// --- Transaction --
+
+/**
+ * @brief Tests the serialization and deserialization of a Transaction object.
+ */
 TEST(TransactionTest, SerializationDeserialization) {
     Transaction t1(1, "UserA", "UserB", "2025-03-28 12:34:56");
     std::stringstream ss;
@@ -93,6 +122,10 @@ TEST(TransactionTest, SerializationDeserialization) {
 // ==========================
 // 3. File Operation Tests
 // ==========================
+
+/**
+ * @brief Tests the save and load operations for books.
+ */
 TEST(FileOpsTest, SaveLoadBooks) {
     RemoveTestFiles();
     std::vector<Book> books;
@@ -105,6 +138,9 @@ TEST(FileOpsTest, SaveLoadBooks) {
     RemoveTestFiles();
 }
 
+/**
+ * @brief Tests the user registration and login functionalities.
+ */
 TEST(FileOpsTest, RegisterAndLoginUser) {
     RemoveTestFiles();
     User u("TestUser", "TestPass");
@@ -115,7 +151,9 @@ TEST(FileOpsTest, RegisterAndLoginUser) {
     RemoveTestFiles();
 }
 
-// Test for registerUserMenu() - Successful Registration
+/**
+ * @brief Tests the interactive registerUserMenu for a successful registration.
+ */
 TEST(InteractiveTest, RegisterUserMenu_Success) {
     RemoveTestFiles();
     // Simulate input: new username, new password, and extra newline for pauseScreen.
@@ -135,7 +173,9 @@ TEST(InteractiveTest, RegisterUserMenu_Success) {
     RemoveTestFiles();
 }
 
-// Test for registerUserMenu() - Duplicate Registration (Failure)
+/**
+ * @brief Tests the interactive registerUserMenu for a duplicate registration failure.
+ */
 TEST(InteractiveTest, RegisterUserMenu_Failure_Duplicate) {
     RemoveTestFiles();
     // First registration should succeed.
@@ -167,7 +207,9 @@ TEST(InteractiveTest, RegisterUserMenu_Failure_Duplicate) {
     RemoveTestFiles();
 }
 
-// Test for loginUserMenu() - Successful Login
+/**
+ * @brief Tests the interactive loginUserMenu for a successful login.
+ */
 TEST(InteractiveTest, LoginUserMenu_Success) {
     RemoveTestFiles();
     // Pre-register a user.
@@ -191,7 +233,9 @@ TEST(InteractiveTest, LoginUserMenu_Success) {
     RemoveTestFiles();
 }
 
-// Test for loginUserMenu() - Failed Login (Wrong Password)
+/**
+ * @brief Tests the interactive loginUserMenu for a failed login attempt with a wrong password.
+ */
 TEST(InteractiveTest, LoginUserMenu_Failure) {
     RemoveTestFiles();
     // Pre-register a user.
@@ -213,6 +257,10 @@ TEST(InteractiveTest, LoginUserMenu_Failure) {
     EXPECT_FALSE(result);
     RemoveTestFiles();
 }
+
+/**
+ * @brief Tests the save and load operations for exchange requests.
+ */
 TEST(FileOpsTest, SaveLoadExchangeRequests) {
     RemoveTestFiles();
     std::vector<ExchangeRequest> reqs;
@@ -225,6 +273,9 @@ TEST(FileOpsTest, SaveLoadExchangeRequests) {
     RemoveTestFiles();
 }
 
+/**
+ * @brief Tests the save and load operations for transactions.
+ */
 TEST(FileOpsTest, SaveLoadTransactions) {
     RemoveTestFiles();
     std::vector<Transaction> trans;
@@ -236,10 +287,13 @@ TEST(FileOpsTest, SaveLoadTransactions) {
     RemoveTestFiles();
 }
 
-
 // ==========================
 // 4. Auto Add Functions Tests
 // ==========================
+
+/**
+ * @brief Tests auto-adding books using a thread-per-book approach.
+ */
 TEST(AutoAddTest, ThreadPerBook) {
     RemoveTestFiles();
     EXPECT_EQ(loadBooks().size(), 0);
@@ -248,6 +302,9 @@ TEST(AutoAddTest, ThreadPerBook) {
     RemoveTestFiles();
 }
 
+/**
+ * @brief Tests auto-adding books using an improved parallel for method.
+ */
 TEST(AutoAddTest, ParallelForImproved) {
     RemoveTestFiles();
     autoAddBooksParallelForImproved(10, 4);
@@ -258,6 +315,10 @@ TEST(AutoAddTest, ParallelForImproved) {
 // ==========================
 // 5. Exchange Request & Transaction Tests
 // ==========================
+
+/**
+ * @brief Tests sending an exchange request and then accepting it.
+ */
 TEST(ExchangeTest, SendAndAcceptRequest) {
     RemoveTestFiles();
     // Send an exchange request: from UserA to UserB for BookID 1
@@ -282,6 +343,10 @@ TEST(ExchangeTest, SendAndAcceptRequest) {
 // ==========================
 // 6. Rate User Test
 // ==========================
+
+/**
+ * @brief Tests the rating calculation for a user.
+ */
 TEST(RateUserTest, RateUserCalculation) {
     RemoveTestFiles();
     User u("UserA", "password");
@@ -303,6 +368,10 @@ TEST(RateUserTest, RateUserCalculation) {
 // ==========================
 // 7. UI Output Tests (Non-interactive parts)
 // ==========================
+
+/**
+ * @brief Tests if the main menu output contains the platform title.
+ */
 TEST(UIOutputTest, ShowMainMenuContainsPlatform) {
     std::streambuf* orig_buf = std::cout.rdbuf();
     std::ostringstream oss;
@@ -313,6 +382,9 @@ TEST(UIOutputTest, ShowMainMenuContainsPlatform) {
     EXPECT_NE(output.find("Book Exchange Platform"), std::string::npos);
 }
 
+/**
+ * @brief Tests if the user menu output contains a welcome message with the username.
+ */
 TEST(UIOutputTest, ShowUserMenuContainsWelcome) {
     std::streambuf* orig_buf = std::cout.rdbuf();
     std::ostringstream oss;
@@ -327,10 +399,9 @@ TEST(UIOutputTest, ShowUserMenuContainsWelcome) {
 // 5. Interactive Function Tests (Simulated Input/Output)
 //=================================================================
 
-// For interactive functions, we redirect std::cin and std::cout.
-// To avoid hangs, we provide sufficient newline characters for each pauseScreen call.
-
-// Test registerUserMenu by simulating input.
+/**
+ * @brief Simulates user input to test the registerUserMenu interactive function.
+ */
 TEST(InteractiveTest, RegisterUserMenu) {
     RemoveTestFiles();
     // Input: username, password, and extra newline for pauseScreen.
@@ -345,7 +416,9 @@ TEST(InteractiveTest, RegisterUserMenu) {
     EXPECT_NE(outStr.find("Registration successful"), std::string::npos);
 }
 
-// Test loginUserMenu by simulating input.
+/**
+ * @brief Simulates user input to test the loginUserMenu interactive function.
+ */
 TEST(InteractiveTest, LoginUserMenu) {
     RemoveTestFiles();
     // Pre-register a user.
@@ -364,7 +437,9 @@ TEST(InteractiveTest, LoginUserMenu) {
     EXPECT_EQ(loggedIn, "NewUser");
 }
 
-// Test exchangeRequestsMenu by simulating immediate exit (input "4" for exit).
+/**
+ * @brief Simulates input to test the exchangeRequestsMenu interactive function with an immediate exit.
+ */
 TEST(InteractiveTest, ExchangeRequestsMenu) {
     // Input "4\n" to exit immediately.
     std::istringstream input("4\n");
@@ -378,9 +453,9 @@ TEST(InteractiveTest, ExchangeRequestsMenu) {
     EXPECT_NE(outStr.find("Exchange Requests Menu"), std::string::npos);
 }
 
-// ExchangeRequestsMenu tests for all branches
-
-// Test branch 0: "Send Exchange Request"
+/**
+ * @brief Tests the "Send Exchange Request" branch of the exchangeRequestsMenu.
+ */
 TEST(InteractiveTest, ExchangeRequestsMenu_Branch0_Send) {
     RemoveTestFiles();
     // Pre-add a book that is owned by someone else so it is found by search.
@@ -404,7 +479,9 @@ TEST(InteractiveTest, ExchangeRequestsMenu_Branch0_Send) {
     RemoveTestFiles();
 }
 
-// Test branch 1: "View Received (Pending) Requests"
+/**
+ * @brief Tests the "View Received (Pending) Requests" branch of the exchangeRequestsMenu.
+ */
 TEST(InteractiveTest, ExchangeRequestsMenu_Branch1_ViewReceived) {
     RemoveTestFiles();
     // Pre-add a pending exchange request for current user "TestUser".
@@ -428,7 +505,9 @@ TEST(InteractiveTest, ExchangeRequestsMenu_Branch1_ViewReceived) {
     RemoveTestFiles();
 }
 
-// Test branch 2: "Accept a Pending Request"
+/**
+ * @brief Tests the "Accept a Pending Request" branch of the exchangeRequestsMenu.
+ */
 TEST(InteractiveTest, ExchangeRequestsMenu_Branch2_Accept) {
     RemoveTestFiles();
     // Pre-add a pending exchange request for current user.
@@ -453,7 +532,9 @@ TEST(InteractiveTest, ExchangeRequestsMenu_Branch2_Accept) {
     RemoveTestFiles();
 }
 
-// Test branch 2: "Decline a Pending Request"
+/**
+ * @brief Tests the "Decline a Pending Request" branch of the exchangeRequestsMenu.
+ */
 TEST(InteractiveTest, ExchangeRequestsMenu_Branch2_Decline) {
     RemoveTestFiles();
     // Pre-add a pending exchange request.
@@ -478,7 +559,9 @@ TEST(InteractiveTest, ExchangeRequestsMenu_Branch2_Decline) {
     RemoveTestFiles();
 }
 
-// Test branch 3: "View Sent Requests"
+/**
+ * @brief Tests the "View Sent Requests" branch of the exchangeRequestsMenu.
+ */
 TEST(InteractiveTest, ExchangeRequestsMenu_Branch3_ViewSent) {
     RemoveTestFiles();
     // Pre-add an exchange request sent by TestUser.
@@ -502,7 +585,9 @@ TEST(InteractiveTest, ExchangeRequestsMenu_Branch3_ViewSent) {
     RemoveTestFiles();
 }
 
-// Test branch 4: "Return"
+/**
+ * @brief Tests the "Return" branch of the exchangeRequestsMenu where the user exits the menu.
+ */
 TEST(InteractiveTest, ExchangeRequestsMenu_Branch4_Return) {
     RemoveTestFiles();
     // Simulate input: choose option "4" to exit immediately.
@@ -519,6 +604,9 @@ TEST(InteractiveTest, ExchangeRequestsMenu_Branch4_Return) {
     RemoveTestFiles();
 }
 
+/**
+ * @brief Tests the exchangeRequestsMenu with an invalid index selection for accepting/declining a request.
+ */
 TEST(InteractiveTest, ExchangeRequestsMenu_Branch2_InvalidIndex) {
     RemoveTestFiles();
     // Pre-add a pending exchange request for current user "TestUser".
@@ -546,8 +634,9 @@ TEST(InteractiveTest, ExchangeRequestsMenu_Branch2_InvalidIndex) {
     RemoveTestFiles();
 }
 
-// Test the default branch: When an invalid top-level choice is entered.
-// For example, if the user enters a number not equal to 0, 1, 2, 3, or 4.
+/**
+ * @brief Tests the exchangeRequestsMenu with an invalid top-level choice.
+ */
 TEST(InteractiveTest, ExchangeRequestsMenu_InvalidChoiceTop) {
     RemoveTestFiles();
     // Simulate input:
@@ -570,7 +659,9 @@ TEST(InteractiveTest, ExchangeRequestsMenu_InvalidChoiceTop) {
     RemoveTestFiles();
 }
 
-// Test sendExchangeRequestMenu by simulating search and selection.
+/**
+ * @brief Tests the sendExchangeRequestMenu function by simulating a search and valid selection.
+ */
 TEST(InteractiveTest, SendExchangeRequestMenu) {
     RemoveTestFiles();
     // Pre-add a book owned by another user.
@@ -588,7 +679,9 @@ TEST(InteractiveTest, SendExchangeRequestMenu) {
     RemoveTestFiles();
 }
 
-// Test for sendExchangeRequestMenu: When no matching books are found (empty branch)
+/**
+ * @brief Tests the sendExchangeRequestMenu function when no matching books are found.
+ */
 TEST(InteractiveTest, SendExchangeRequestMenu_Empty) {
     RemoveTestFiles();
     // Add a book owned by the current user ("TestUser") so that it is filtered out.
@@ -613,7 +706,9 @@ TEST(InteractiveTest, SendExchangeRequestMenu_Empty) {
     RemoveTestFiles();
 }
 
-// Test for sendExchangeRequestMenu: When an invalid selection is made
+/**
+ * @brief Tests the sendExchangeRequestMenu function when an invalid selection is made.
+ */
 TEST(InteractiveTest, SendExchangeRequestMenu_InvalidSelection) {
     RemoveTestFiles();
     // Add a book owned by someone else so that it will be included.
@@ -638,7 +733,10 @@ TEST(InteractiveTest, SendExchangeRequestMenu_InvalidSelection) {
     EXPECT_NE(outStr.find("Invalid selection"), std::string::npos);
     RemoveTestFiles();
 }
-// Test addBookManually by simulating input.
+
+/**
+ * @brief Tests the addBookManually function by simulating user input for book details.
+ */
 TEST(InteractiveTest, AddBookManually) {
     RemoveTestFiles();
     // Input: book title, author, genre, then extra newline.
@@ -655,6 +753,9 @@ TEST(InteractiveTest, AddBookManually) {
     RemoveTestFiles();
 }
 
+/**
+ * @brief Tests the listAllBooks function to verify that it displays the book list.
+ */
 TEST(InteractiveTest, ListAllBooks) {
     RemoveTestFiles();
     // Pre-add a book.
@@ -675,7 +776,9 @@ TEST(InteractiveTest, ListAllBooks) {
     RemoveTestFiles();
 }
 
-// Test searchBooksMenu by simulating input (search by title).
+/**
+ * @brief Tests the searchBooksMenu function by simulating a search based on title.
+ */
 TEST(InteractiveTest, SearchBooksMenu) {
     RemoveTestFiles();
     // Pre-add books.
@@ -694,7 +797,9 @@ TEST(InteractiveTest, SearchBooksMenu) {
     RemoveTestFiles();
 }
 
-
+/**
+ * @brief Tests the transactionHistoryMenu function to verify transaction history is displayed.
+ */
 TEST(InteractiveTest, TransactionHistoryMenu) {
     RemoveTestFiles();
     // Pre-add a transaction.
@@ -715,7 +820,10 @@ TEST(InteractiveTest, TransactionHistoryMenu) {
     EXPECT_NE(outStr.find("Transaction History:"), std::string::npos);
     RemoveTestFiles();
 }
-// Test deleteBooksMenu by simulating input (choose exit option "4").
+
+/**
+ * @brief Tests the deleteBooksMenu function by simulating an exit option (no deletion).
+ */
 TEST(InteractiveTest, DeleteBooksMenu) {
     RemoveTestFiles();
     // Pre-add a book.
@@ -734,7 +842,9 @@ TEST(InteractiveTest, DeleteBooksMenu) {
 
 // DeleteBooksMenu tests
 
-// Test for branch 1: Delete Single Book
+/**
+ * @brief Tests the deleteBooksMenu function for single book deletion.
+ */
 TEST(InteractiveTest, DeleteBooksMenu_SingleDeletion) {
     RemoveTestFiles();
     // Pre-add two books: one with ID=1 and one with ID=2.
@@ -767,7 +877,9 @@ TEST(InteractiveTest, DeleteBooksMenu_SingleDeletion) {
     RemoveTestFiles();
 }
 
-// Test for branch 2: Delete Multiple Books
+/**
+ * @brief Tests the deleteBooksMenu function for multiple books deletion within a given range.
+ */
 TEST(InteractiveTest, DeleteBooksMenu_MultipleDeletion) {
     RemoveTestFiles();
     // Pre-add five books with IDs 1 to 5.
@@ -802,7 +914,9 @@ TEST(InteractiveTest, DeleteBooksMenu_MultipleDeletion) {
     RemoveTestFiles();
 }
 
-// Test for branch 3: Invalid Choice
+/**
+ * @brief Tests the deleteBooksMenu function with an invalid choice.
+ */
 TEST(InteractiveTest, DeleteBooksMenu_InvalidChoice) {
     RemoveTestFiles();
     // No pre-added books needed.
@@ -825,8 +939,9 @@ TEST(InteractiveTest, DeleteBooksMenu_InvalidChoice) {
     RemoveTestFiles();
 }
 
-
-// Test heavyLoadListingTest to ensure it runs.
+/**
+ * @brief Tests the heavyLoadListingTest function to ensure it runs and displays performance data.
+ */
 TEST(InteractiveTest, HeavyLoadListingTest) {
     RemoveTestFiles();
     // Pre-add some books.
@@ -846,7 +961,9 @@ TEST(InteractiveTest, HeavyLoadListingTest) {
     RemoveTestFiles();
 }
 
-// Test autoAddPerformanceTest to ensure it runs.
+/**
+ * @brief Tests the autoAddPerformanceTest function to ensure performance results are saved.
+ */
 TEST(InteractiveTest, AutoAddPerformanceTest) {
     RemoveTestFiles();
     // Use small test count for faster testing.
@@ -862,7 +979,9 @@ TEST(InteractiveTest, AutoAddPerformanceTest) {
     RemoveTestFiles();
 }
 
-// Test searchPerformanceTest to ensure it runs.
+/**
+ * @brief Tests the searchPerformanceTest function to ensure it runs and displays performance data.
+ */
 TEST(InteractiveTest, SearchPerformanceTest) {
     RemoveTestFiles();
     // Pre-add some books with "Auto" in the title.
@@ -881,7 +1000,9 @@ TEST(InteractiveTest, SearchPerformanceTest) {
     RemoveTestFiles();
 }
 
-// Test rateUserMenu by simulating input.
+/**
+ * @brief Tests the rateUserMenu function by simulating user input for rating a user.
+ */
 TEST(InteractiveTest, RateUserMenu) {
     RemoveTestFiles();
     // Pre-register a user to be rated.
@@ -901,20 +1022,29 @@ TEST(InteractiveTest, RateUserMenu) {
     EXPECT_EQ(usersVec[0].ratingCount, 1);
     RemoveTestFiles();
 }
+
 // ==========================
 // 8. Miscellaneous Tests: clearScreen & pauseScreen (Basic call test)
 // ==========================
+
+/**
+ * @brief Tests that clearScreen() and pauseScreen() do not throw exceptions.
+ */
 TEST(MiscTest, ClearAndPauseDoNotThrow) {
     EXPECT_NO_THROW(clearScreen());
     // pauseScreen() waits for user input, so it is not called here.
 }
 
-
-
-
 // ==========================
 // main() for tests
 // ==========================
+
+/**
+ * @brief The main function that initializes and runs all tests.
+ * @param argc The argument count.
+ * @param argv The argument vector.
+ * @return The result of running all tests.
+ */
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     RemoveTestFiles(); // Clean start
