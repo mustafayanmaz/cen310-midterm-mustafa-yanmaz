@@ -158,8 +158,8 @@ void showUserMenu(const std::string& username) {
     std::cout << "3. Auto Add Books (Improved Single Lock)" << std::endl;
     std::cout << "4. List All Books" << std::endl;
     std::cout << "5. Search Books" << std::endl;
-    std::cout << "6. Exchange Requests (Not Implemented)" << std::endl;
-    std::cout << "7. Rate User (Not Implemented)" << std::endl;
+    std::cout << "6. Exchange Requests" << std::endl;
+    std::cout << "7. Rate User" << std::endl;
     std::cout << "8. Transaction History" << std::endl;
     std::cout << "9. Delete Books" << std::endl;
     std::cout << "10. Heavy Load Listing Performance Test" << std::endl;
