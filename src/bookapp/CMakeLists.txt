@@ -26,7 +26,7 @@ target_include_directories(${APPNAME} PUBLIC
 						   ${CMAKE_CURRENT_SOURCE_DIR}/header)
 
 # Add any dependencies or compile options specific to lock6g
-target_link_libraries(${APPNAME} PRIVATE book utility)
+target_link_libraries(${APPNAME} PRIVATE book utility ${OpenMP_CXX_LIBRARIES})
 
 install(TARGETS ${APPNAME}
         LIBRARY DESTINATION lib

@@ -25,7 +25,7 @@ target_include_directories(${LIBNAME} PUBLIC
 						   ${CMAKE_CURRENT_SOURCE_DIR}/header)
 
 # Add any dependencies or compile options specific to crypto
-target_link_libraries(${LIBNAME} PRIVATE utility)
+target_link_libraries(${LIBNAME} PRIVATE utility ${OpenMP_CXX_LIBRARIES})
 
 # creates preprocessor definition used for library exports
 add_compile_definitions("CORUH_BOOK_LIB_EXPORTS")

@@ -4,6 +4,14 @@ project(bookapp)
 
 set(ROOT src)
 
+# Enable OpenMP if available
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+  message(STATUS "OpenMP found")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif()
+
+
 # Print useful information
 message(STATUS "[${ROOT}] CMake version ${CMAKE_VERSION}")
 message(STATUS "[${ROOT}] System ${CMAKE_SYSTEM_NAME}")

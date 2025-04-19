@@ -24,6 +24,11 @@ add_library(${LIBNAME} STATIC ${LIB_HEADERS} ${LIB_SOURCES}) # for dynamic libra
 target_include_directories(${LIBNAME} PUBLIC
 						   ${CMAKE_CURRENT_SOURCE_DIR}/header)
 
+# Link OpenMP if available
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(${LIBNAME} PUBLIC OpenMP::OpenMP_CXX)
+endif()
+
 # creates preprocessor definition used for library exports
 add_compile_definitions("LOCK6G_UTILIY_LIB_EXPORTS")
 
