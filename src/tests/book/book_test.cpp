@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file book_test.cpp
  * @brief Test file for the book exchange platform using Google Test framework.
  */
@@ -8,6 +8,7 @@
 #include <sstream>
 #include <cstdio>    // for remove()
 #include <ctime>
+#include <mpi.h>
 
  /**
   * @brief Formats a given time_t value into a human-readable date and time string.
@@ -1051,4 +1052,29 @@ int main(int argc, char** argv) {
     int ret = RUN_ALL_TESTS();
     RemoveTestFiles(); // Clean up after tests
     return ret;
+}
+TEST(PerformanceTest, SimpleMPITestWithInit) {
+    int argc = 0;
+    char** argv = nullptr;
+
+    MPI_Init(&argc, &argv);  
+
+    std::vector<Book> books = {
+        {1, "Alpha", "AuthorA", "Fiction", "User1"},
+        {2, "Beta", "AuthorB", "Fiction", "User2"},
+        {3, "Gamma", "AuthorC", "History", "User3"}
+    };
+
+    bookSimilarityMatrixTestMPI(books);
+
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    if (rank == 0) {
+        std::ifstream file("book_similarity_performance.csv");
+        ASSERT_TRUE(file.is_open());
+        file.close();
+    }
+
+    MPI_Finalize(); 
 }
