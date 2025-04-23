@@ -203,7 +203,9 @@ void autoAddPerformanceTest();
 void searchPerformanceTest();
 
 void bookSimilarityMatrixTestMPI(const std::vector<Book>& books);
-
+void matrixMultiplicationTestMPI(int size);
+void bookTrigramSimilarityTestMPI(const std::vector<Book>& books);
+void bookExchangeShortestPathTestMPI();
 void exchangeRequestsMenu(const std::string& currentUser);
 void rateUserMenu(const std::string& currentUser);
 void sendExchangeRequestMenu(const std::string& currentUser);

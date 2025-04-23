@@ -13,6 +13,7 @@
 #include <fstream>
 #include <cmath>
 #include <map>
+#include <set>
 #include <mpi.h>
 #include <omp.h> 
 #ifdef _OPENMP
@@ -164,13 +165,14 @@ void showUserMenu(const std::string& username) {
     std::cout << "7. Rate User" << std::endl;
     std::cout << "8. Transaction History" << std::endl;
     std::cout << "9. Delete Books" << std::endl;
-    std::cout << "10. Heavy Load Listing Performance Test" << std::endl;
-    std::cout << "11. Auto Add Performance Test" << std::endl;
+    std::cout << "10. Heavy Load Listing Performance Test(OpenMP)" << std::endl;
+    std::cout << "11. Auto Add Performance Test(OpenMP)" << std::endl;
     std::cout << "12. Search Performance Test (OpenMP)" << std::endl;
-    std::cout << "13. Logout" << std::endl;
-    std::cout << "14. sim mpi" << std::endl;
-    std::cout << "15. key mpi" << std::endl;
-    std::cout << "16. hash mpi" << std::endl;
+    std::cout << "13. Book Similarity(MPI)" << std::endl;
+    std::cout << "14. Shortest Path Test (MPI)" << std::endl;
+    std::cout << "15. Trigram Similarity Test (MPI)" << std::endl;
+    std::cout << "16. Matrix Multiplication Test (MPI)" << std::endl;
+    std::cout << "0. Logout" << std::endl;
     std::cout << "Enter your choice: ";
 }
 
@@ -1273,3 +1275,103 @@ void bookSimilarityMatrixTestMPI(const std::vector<Book>& books) {
         std::cout << "Results saved to book_similarity_performance.csv\n";
     }
 }
+
+
+/**
+ * @brief Tests performance of square matrix multiplication both sequentially and using MPI.
+ * @param size The dimension N of the N×N matrices to multiply.
+ */
+void matrixMultiplicationTestMPI(int size) {
+    int worldSize, worldRank;
+    MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
+    MPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
+
+    if (worldRank == 0) {
+        std::cout << "[Rank 0] Matrix multiplication test: size=" << size
+            << ", ranks=" << worldSize << std::endl;
+    }
+
+    // Allocate matrices
+    std::vector<float> A, B;
+    if (worldRank == 0) {
+        A.resize(size * size);
+        B.resize(size * size);
+        // initialize with some values
+        for (int i = 0; i < size * size; ++i) {
+            A[i] = static_cast<float>(i % 100) + 1.0f;
+            B[i] = static_cast<float>((i * 2) % 100) + 1.0f;
+        }
+    }
+
+    // Broadcast matrices A and B to all ranks
+    if (worldRank != 0) {
+        A.resize(size * size);
+        B.resize(size * size);
+    }
+    MPI_Bcast(A.data(), size * size, MPI_FLOAT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(B.data(), size * size, MPI_FLOAT, 0, MPI_COMM_WORLD);
+
+    // --- Sequential compute on rank 0 ---
+    double seqTime = 0.0;
+    if (worldRank == 0) {
+        std::vector<float> C_seq(size * size, 0.0f);
+        auto seqStart = std::chrono::steady_clock::now();
+        for (int i = 0; i < size; ++i) {
+            for (int j = 0; j < size; ++j) {
+                float sum = 0.0f;
+                for (int k = 0; k < size; ++k)
+                    sum += A[i * size + k] * B[k * size + j];
+                C_seq[i * size + j] = sum;
+            }
+        }
+        auto seqEnd = std::chrono::steady_clock::now();
+        seqTime = std::chrono::duration<double, std::milli>(seqEnd - seqStart).count();
+        std::cout << "[Rank 0] Sequential multiply done in "
+            << std::fixed << std::setprecision(2) << seqTime << " ms\n";
+    }
+
+    // --- MPI parallel compute ---
+    // divide rows among ranks
+    int baseRows = size / worldSize;
+    int rem = size % worldSize;
+    int start = worldRank * baseRows + std::min(worldRank, rem);
+    int count = baseRows + (worldRank < rem ? 1 : 0);
+    int end = start + count;
+
+    // each rank computes its block of rows
+    std::vector<float> C_local(count * size, 0.0f);
+    MPI_Barrier(MPI_COMM_WORLD);
+    double mpiStart = MPI_Wtime();
+    for (int i = start; i < end; ++i) {
+        for (int j = 0; j < size; ++j) {
+            float sum = 0.0f;
+            for (int k = 0; k < size; ++k)
+                sum += A[i * size + k] * B[k * size + j];
+            C_local[(i - start) * size + j] = sum;
+        }
+    }
+    double mpiEnd = MPI_Wtime();
+    double localMpiTime = (mpiEnd - mpiStart) * 1000.0;
+
+    // find the maximum time across all ranks
+    double mpiTime = 0.0;
+    MPI_Reduce(&localMpiTime, &mpiTime, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+
+    if (worldRank == 0) {
+        std::cout << "[Rank 0] MPI multiply done in "
+            << std::fixed << std::setprecision(2) << mpiTime << " ms\n";
+        std::cout << "Improvement: "
+            << std::fixed << std::setprecision(2)
+            << (seqTime / mpiTime) << "× faster\n";
+
+        // save results to CSV
+        std::ofstream csv("matrix_multiplication_performance.csv");
+        csv << "Mode,Time_ms\n";
+        csv << "Sequential," << seqTime << "\n";
+        csv << "MPI," << mpiTime << "\n";
+        csv.close();
+        std::cout << "Results saved to matrix_multiplication_performance.csv\n";
+    }
+}
+
+

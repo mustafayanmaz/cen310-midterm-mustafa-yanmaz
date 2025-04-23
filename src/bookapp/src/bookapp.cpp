@@ -55,13 +55,30 @@ int main(int argc, char** argv) {
             }
         }
 
-        else if (choice >= 14 && choice <= 16) {
+        else if (choice >= 13 && choice <= 18) {
             std::vector<Book> allBooks = loadBooks();
 
             switch (choice) {
-            case 14:
+            case 13:
                 bookSimilarityMatrixTestMPI(allBooks);
                 break;
+            case 14:
+                bookExchangeShortestPathTestMPI();
+                break;
+            case 15:
+                bookTrigramSimilarityTestMPI(allBooks);
+                break;
+            case 16: {
+                int N;
+                if (rank == 0) {
+                    std::cout << "Enter matrix dimension N: ";
+                    std::cin >> N;
+                }
+                MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD);
+                matrixMultiplicationTestMPI(N);
+                break;
+            }
+            
            
             }
 
@@ -100,7 +117,7 @@ int main(int argc, char** argv) {
             case 10: if (rank == 0) heavyLoadListingTest(); break;
             case 11: if (rank == 0) autoAddPerformanceTest(); break;
             case 12: if (rank == 0) searchPerformanceTest(); break;
-            case 13:
+            case 0:
                 if (rank == 0) {
                     currentUser = "";
                     std::cout << "Logged out successfully.\n";
