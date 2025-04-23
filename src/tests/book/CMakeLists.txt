@@ -27,10 +27,13 @@ add_executable(${EXENAME} ${LIB_HEADERS} ${LIB_SOURCES})
 target_include_directories(${EXENAME} PUBLIC
 						   ${CMAKE_CURRENT_SOURCE_DIR}/../../utility/header
 						   ${CMAKE_CURRENT_SOURCE_DIR}/../../book/header
-						   ${CMAKE_CURRENT_SOURCE_DIR})
+
+${CMAKE_CURRENT_SOURCE_DIR}
+
+${MPI_INCLUDE_PATH})
 
 # Add any dependencies or compile options specific to aka5g tests
-target_link_libraries(${EXENAME} PRIVATE book utility gtest gtest_main ${OpenMP_CXX_LIBRARIES})
+target_link_libraries(${EXENAME} PRIVATE book utility gtest gtest_main ${OpenMP_CXX_LIBRARIES} ${MPI_CXX_LIBRARIES})
 
 # Register the test with CTest
 # add_test(NAME ${EXENAME} COMMAND ${EXENAME})

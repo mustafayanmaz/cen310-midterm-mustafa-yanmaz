@@ -22,10 +22,13 @@ add_library(${LIBNAME} STATIC ${LIB_HEADERS} ${LIB_SOURCES}) # for dynamic libra
 
 target_include_directories(${LIBNAME} PUBLIC
 						   ${CMAKE_CURRENT_SOURCE_DIR}/../utility/header
-						   ${CMAKE_CURRENT_SOURCE_DIR}/header)
+						   ${CMAKE_CURRENT_SOURCE_DIR}/header
+
+${MPI_INCLUDE_PATH})
+
 
 # Add any dependencies or compile options specific to crypto
-target_link_libraries(${LIBNAME} PRIVATE utility ${OpenMP_CXX_LIBRARIES})
+target_link_libraries(${LIBNAME} PRIVATE utility ${OpenMP_CXX_LIBRARIES} ${MPI_CXX_LIBRARIES})
 
 # creates preprocessor definition used for library exports
 add_compile_definitions("CORUH_BOOK_LIB_EXPORTS")

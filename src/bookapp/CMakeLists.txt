@@ -23,10 +23,12 @@ add_executable(${APPNAME} ${APP_HEADERS} ${APP_SOURCES}) # for dynamic library u
 target_include_directories(${APPNAME} PUBLIC
 						   ${CMAKE_CURRENT_SOURCE_DIR}/../utility/header
 						   ${CMAKE_CURRENT_SOURCE_DIR}/../book/header
-						   ${CMAKE_CURRENT_SOURCE_DIR}/header)
+						   ${CMAKE_CURRENT_SOURCE_DIR}/header
+
+${MPI_INCLUDE_PATH})
 
 # Add any dependencies or compile options specific to lock6g
-target_link_libraries(${APPNAME} PRIVATE book utility ${OpenMP_CXX_LIBRARIES})
+target_link_libraries(${APPNAME} PRIVATE book utility ${OpenMP_CXX_LIBRARIES} ${MPI_CXX_LIBRARIES})
 
 install(TARGETS ${APPNAME}
         LIBRARY DESTINATION lib
