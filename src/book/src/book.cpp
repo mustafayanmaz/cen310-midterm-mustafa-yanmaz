@@ -1,21 +1,23 @@
-/**
+﻿/**
  * @brief Includes the header file for the book exchange platform declarations.
  */
 #include "book.h"
 #include <cstring>
 #include <mutex>
 #include <thread>
+#include <unordered_map>
 #include <chrono>
 #include <sstream>
 #include <ctime>
 #include <iomanip>
 #include <fstream>
 #include <cmath>
+#include <map>
+#include <mpi.h>
 #include <omp.h> 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-
 // ---------------------------
 // Global Mutexes
 // ---------------------------
@@ -164,8 +166,11 @@ void showUserMenu(const std::string& username) {
     std::cout << "9. Delete Books" << std::endl;
     std::cout << "10. Heavy Load Listing Performance Test" << std::endl;
     std::cout << "11. Auto Add Performance Test" << std::endl;
-    std::cout << "12. Search Performance Test" << std::endl;
+    std::cout << "12. Search Performance Test (OpenMP)" << std::endl;
     std::cout << "13. Logout" << std::endl;
+    std::cout << "14. sim mpi" << std::endl;
+    std::cout << "15. key mpi" << std::endl;
+    std::cout << "16. hash mpi" << std::endl;
     std::cout << "Enter your choice: ";
 }
 
@@ -1143,4 +1148,430 @@ void rateUserMenu(const std::string& currentUser) {
         std::cout << "User not found.\n";
     }
     pauseScreen();
+}
+
+
+void searchPerformanceComparison(const std::string& keyword, const std::vector<Book>& books) {
+    using namespace std::chrono;
+
+    int rank = 0, size = 1;
+
+#ifdef USE_MPI
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+#endif
+
+    double seqTime = 0.0, ompTime = 0.0, mpiTime = 0.0;
+    int seqCount = 0, ompCount = 0, mpiCount = 0;
+
+    // Sequential
+    if (rank == 0) {
+        auto start = high_resolution_clock::now();
+        for (const auto& b : books) {
+            if (b.title.find(keyword) != std::string::npos ||
+                b.author.find(keyword) != std::string::npos ||
+                b.genre.find(keyword) != std::string::npos)
+                seqCount++;
+        }
+        auto end = high_resolution_clock::now();
+        seqTime = duration<double, std::milli>(end - start).count();
+    }
+
+    // OpenMP
+    if (rank == 0) {
+        auto ompStart = high_resolution_clock::now();
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+:ompCount)
+        for (int i = 0; i < books.size(); ++i) {
+            if (books[i].title.find(keyword) != std::string::npos ||
+                books[i].author.find(keyword) != std::string::npos ||
+                books[i].genre.find(keyword) != std::string::npos)
+                ompCount++;
+        }
+#else
+        ompCount = seqCount;
+#endif
+        auto ompEnd = high_resolution_clock::now();
+        ompTime = duration<double, std::milli>(ompEnd - ompStart).count();
+    }
+
+    // MPI
+    int localCount = 0;
+    double mpiStart = MPI_Wtime();
+
+    int chunkSize = books.size() / size;
+    int startIdx = rank * chunkSize;
+    int endIdx = (rank == size - 1) ? books.size() : startIdx + chunkSize;
+
+    for (int i = startIdx; i < endIdx; ++i) {
+        if (books[i].title.find(keyword) != std::string::npos ||
+            books[i].author.find(keyword) != std::string::npos ||
+            books[i].genre.find(keyword) != std::string::npos)
+            localCount++;
+    }
+
+    MPI_Reduce(&localCount, &mpiCount, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+    double mpiEnd = MPI_Wtime();
+    mpiTime = (mpiEnd - mpiStart) * 1000;
+
+    // Final output by master
+    if (rank == 0) {
+        std::cout << "\n--- Search Performance Comparison ---\n";
+        std::cout << "Keyword: " << keyword << "\n";
+        std::cout << "Sequential: " << seqTime << " ms (" << seqCount << " results)\n";
+        std::cout << "OpenMP:     " << ompTime << " ms (" << ompCount << " results)\n";
+        std::cout << "MPI:        " << mpiTime << " ms (" << mpiCount << " results)\n";
+
+        std::ofstream file("search_comparison.csv");
+        file << "Method,Time_ms,ResultCount\n";
+        file << "Sequential," << seqTime << "," << seqCount << "\n";
+        file << "OpenMP," << ompTime << "," << ompCount << "\n";
+        file << "MPI," << mpiTime << "," << mpiCount << "\n";
+        file.close();
+
+        std::cout << "Saved to search_comparison.csv\n";
+}
+}
+
+
+
+
+void genreCountPerformanceTest() {
+    std::vector<Book> books = loadBooks();
+    std::map<std::string, int> genreCountsSeq;
+
+    // Sequential Count
+    auto seqStart = std::chrono::steady_clock::now();
+    for (const Book& b : books) {
+        genreCountsSeq[b.genre]++;
+    }
+    auto seqEnd = std::chrono::steady_clock::now();
+    double seqTime = std::chrono::duration<double, std::milli>(seqEnd - seqStart).count();
+
+    // MPI Parallel Count
+    int worldSize, worldRank;
+    MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
+    MPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
+
+    int chunkSize = books.size() / worldSize;
+    int start = worldRank * chunkSize;
+    int end = (worldRank == worldSize - 1) ? books.size() : start + chunkSize;
+
+    std::map<std::string, int> localCounts;
+    auto parStart = std::chrono::steady_clock::now();
+    for (int i = start; i < end; ++i) {
+        localCounts[books[i].genre]++;
+    }
+
+    // Tüm process'ler root'a yolluyor
+    std::vector<int> recvCounts;
+    std::vector<std::string> allGenres;
+    if (worldRank == 0) {
+        recvCounts.resize(0);
+        allGenres.resize(0);
+    }
+
+    // Root işlem sonuçları toplar
+    std::map<std::string, int> totalCounts;
+    for (const auto& pair : localCounts) {
+        int localVal = pair.second;
+        int globalVal = 0;
+        MPI_Reduce(&localVal, &globalVal, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+        if (worldRank == 0) {
+            totalCounts[pair.first] = globalVal;
+        }
+    }
+
+    auto parEnd = std::chrono::steady_clock::now();
+    double parTime = std::chrono::duration<double, std::milli>(parEnd - parStart).count();
+
+    // Root sonucu ekrana basar
+    if (worldRank == 0) {
+        std::cout << "Genre Count Performance Test:\n";
+        std::cout << "Sequential Time: " << std::fixed << std::setprecision(4) << seqTime << " ms\n";
+        std::cout << "MPI Parallel Time: " << std::fixed << std::setprecision(4) << parTime << " ms\n";
+
+        std::ofstream csv("genre_count_performance.csv");
+        csv << "Mode,Time_ms\n";
+        csv << "Sequential," << seqTime << "\n";
+        csv << "MPI," << parTime << "\n";
+        csv.close();
+
+        std::cout << "Performance results saved to genre_count_performance.csv\n";
+    }
+}
+
+
+/*
+void keywordFrequencyAnalysisMPI() {
+    int worldSize, worldRank;
+    MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
+    MPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
+
+    std::vector<Book> allBooks = loadBooks();
+    if (allBooks.empty()) {
+        if (worldRank == 0)
+            std::cerr << "No books loaded. Aborting.\n";
+        return;
+    }
+
+    std::vector<std::string> keywords = { "Auto", "Book", "Genre", "User" };
+    std::unordered_map<std::string, int> sequentialCounts;
+    std::unordered_map<std::string, int> mpiCounts;
+
+    // Sequential
+    auto seqStart = std::chrono::steady_clock::now();
+    for (const Book& b : allBooks) {
+        for (const std::string& kw : keywords) {
+            if (b.title.find(kw) != std::string::npos) sequentialCounts[kw]++;
+            if (b.author.find(kw) != std::string::npos) sequentialCounts[kw]++;
+            if (b.genre.find(kw) != std::string::npos) sequentialCounts[kw]++;
+        }
+    }
+    auto seqEnd = std::chrono::steady_clock::now();
+    double seqTime = std::chrono::duration<double, std::milli>(seqEnd - seqStart).count();
+
+    int booksPerProc = allBooks.size() / worldSize;
+    int remainder = allBooks.size() % worldSize;
+    int startIdx = worldRank * booksPerProc + std::min(worldRank, remainder);
+    int endIdx = startIdx + booksPerProc + (worldRank < remainder ? 1 : 0);
+
+    std::unordered_map<std::string, int> localCounts;
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    auto mpiStart = std::chrono::steady_clock::now();
+
+    for (int i = startIdx; i < endIdx; ++i) {
+        for (const std::string& kw : keywords) {
+            if (allBooks[i].title.find(kw) != std::string::npos) localCounts[kw]++;
+            if (allBooks[i].author.find(kw) != std::string::npos) localCounts[kw]++;
+            if (allBooks[i].genre.find(kw) != std::string::npos) localCounts[kw]++;
+        }
+    }
+
+    std::vector<int> localData, globalData;
+    for (const std::string& kw : keywords) localData.push_back(localCounts[kw]);
+    if (worldRank == 0) globalData.resize(keywords.size());
+
+    MPI_Reduce(localData.data(), globalData.data(), keywords.size(), MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    auto mpiEnd = std::chrono::steady_clock::now();
+    double mpiTime = std::chrono::duration<double, std::milli>(mpiEnd - mpiStart).count();
+
+    if (worldRank == 0) {
+        std::cout << "\nKeyword Frequency Analysis Result:\n";
+        for (size_t i = 0; i < keywords.size(); ++i) {
+            std::cout << "Keyword: " << keywords[i]
+                << " | Sequential: " << sequentialCounts[keywords[i]]
+                << " | MPI: " << globalData[i] << "\n";
+        }
+        std::cout << std::fixed << std::setprecision(4);
+        std::cout << "\nSequential Time: " << seqTime << " ms\n";
+        std::cout << "MPI Time:        " << mpiTime << " ms\n";
+
+        std::ofstream csv("keyword_analysis_performance.csv");
+        csv << "Mode,Time_ms\n";
+        csv << "Sequential," << seqTime << "\n";
+        csv << "MPI," << mpiTime << "\n";
+        csv.close();
+    }
+}
+
+
+
+
+/**
+ * @brief Compares hash computation performance using sequential and MPI parallel processing.
+ * Each book's hash is computed by simulating an expensive calculation.
+ * Results are written to "hash_performance.csv".
+ */
+/*
+void hashPerformanceTestMPI(const std::string& keyword) {
+    std::vector<Book> books = loadBooks();
+    int worldSize, worldRank;
+    MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
+    MPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
+
+    std::vector<std::string> bookData;
+    for (const auto& b : books) {
+        if (b.title.find(keyword) != std::string::npos ||
+            b.author.find(keyword) != std::string::npos ||
+            b.genre.find(keyword) != std::string::npos) {
+            std::stringstream ss;
+            ss << b.id << b.title << b.author << b.genre << b.owner;
+            bookData.push_back(ss.str());
+        }
+    }
+
+    double seqTime = 0.0;
+    if (worldRank == 0) {
+        auto seqStart = std::chrono::steady_clock::now();
+        for (const auto& line : bookData) {
+            volatile double hash = 0.0;
+            for (int i = 0; i < 100000; i++) {
+                hash += std::sin(i + line.length()) * std::cos(i / 3.0);
+            }
+        }
+        auto seqEnd = std::chrono::steady_clock::now();
+        seqTime = std::chrono::duration<double, std::milli>(seqEnd - seqStart).count();
+    }
+
+    int total = (int)bookData.size();
+    MPI_Bcast(&total, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+    int chunk = total / worldSize;
+    int start = worldRank * chunk;
+    int end = (worldRank == worldSize - 1) ? total : start + chunk;
+
+    auto mpiStart = std::chrono::steady_clock::now();
+    for (int i = start; i < end; ++i) {
+        volatile double hash = 0.0;
+        for (int j = 0; j < 100000; j++) {
+            hash += std::sin(j + bookData[i].length()) * std::cos(j / 3.0);
+        }
+    }
+    auto mpiEnd = std::chrono::steady_clock::now();
+    double mpiLocalTime = std::chrono::duration<double, std::milli>(mpiEnd - mpiStart).count();
+
+    double mpiMaxTime = 0.0;
+    MPI_Reduce(&mpiLocalTime, &mpiMaxTime, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+
+    if (worldRank == 0) {
+        std::cout << "Hash Performance Comparison with keyword: \"" << keyword << "\"\n";
+        std::cout << "Sequential: " << std::fixed << std::setprecision(2) << seqTime << " ms\n";
+        std::cout << "MPI (" << worldSize << " procs): " << mpiMaxTime << " ms\n";
+        std::cout << "Speedup: " << (seqTime / mpiMaxTime) << "x\n";
+
+        std::ofstream csv("hash_performance.csv");
+        csv << "Mode,Time_ms,Processors\n";
+        csv << "Sequential," << seqTime << ",1\n";
+        csv << "MPI," << mpiMaxTime << "," << worldSize << "\n";
+        csv.close();
+    }
+}
+*/
+
+
+
+
+
+// In book.cpp
+void bookSimilarityMatrixTestMPI(const std::vector<Book>& books) {
+    int worldSize, worldRank;
+    MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
+    MPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
+    std::cout << "Hello from rank " << worldRank << " of " << worldSize << std::endl;
+
+    int n = static_cast<int>(books.size());
+    if (n == 0) {
+        if (worldRank == 0) std::cout << "No books found for similarity test.\n";
+        return;
+    }
+
+    if (worldRank == 0)
+        std::cout << "[Rank 0] Starting similarity test with " << worldSize << " ranks, " << n << " books.\n";
+
+    // 1) Extract features
+    auto extractFeatures = [](const Book& b) {
+        std::vector<float> vec(26, 0.0f);
+        for (char c : b.title + b.author + b.genre) {
+            if (std::isalpha(c))
+                vec[std::tolower(c) - 'a'] += 1.0f;
+        }
+        return vec;
+        };
+    std::vector<std::vector<float>> featureVectors(n);
+    for (int i = 0; i < n; ++i)
+        featureVectors[i] = extractFeatures(books[i]);
+
+    double seqTime = 0.0;
+    volatile float dummySum = 0.0f;  // Prevent optimization
+    if (worldRank == 0) {
+        auto seqStart = std::chrono::steady_clock::now();
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                float dot = 0.0f;
+                for (int k = 0; k < 26; ++k)
+                    dot += featureVectors[i][k] * featureVectors[j][k];
+                dummySum += dot; // Consume result to prevent dead code elimination
+            }
+        }
+        auto seqEnd = std::chrono::steady_clock::now();
+        seqTime = std::chrono::duration<double, std::milli>(seqEnd - seqStart).count();
+        std::cout << "[Rank 0] Sequential compute done in " << seqTime << " ms\n";
+    }
+
+
+    // 3) Workload division
+    int baseRows = n / worldSize;
+    int rem = n % worldSize;
+    int start = worldRank * baseRows + std::min(worldRank, rem);
+    int count = baseRows + (worldRank < rem ? 1 : 0);
+    int end = start + count;
+
+    if (worldRank == 0)
+        std::cout << "[Rank 0] Each rank computing rows. Rank " << worldRank
+        << " does rows [" << start << "," << end << ")\n";
+
+    // 4) Local computation + MPI time start
+    double mpiStart = MPI_Wtime();
+    std::vector<float> localBuf(count * n);
+    for (int i = start; i < end; ++i) {
+        for (int j = 0; j < n; ++j) {
+            float dot = 0.0f;
+            for (int k = 0; k < 26; ++k)
+                dot += featureVectors[i][k] * featureVectors[j][k];
+            localBuf[(i - start) * n + j] = dot;
+        }
+    }
+
+    // 5) Prepare for Gatherv
+    std::vector<int> recvCounts, displs;
+    if (worldRank == 0) {
+        recvCounts.resize(worldSize);
+        displs.resize(worldSize);
+        int offset = 0;
+        for (int r = 0; r < worldSize; ++r) {
+            int rows = baseRows + (r < rem ? 1 : 0);
+            recvCounts[r] = rows * n;
+            displs[r] = offset * n;
+            offset += rows;
+        }
+    }
+
+    std::cout << "[Rank " << worldRank << "] before MPI_Gatherv, sending "
+        << count * n << " floats\n";
+
+    std::vector<float> globalBuf;
+    if (worldRank == 0)
+        globalBuf.resize(n * n);
+
+    MPI_Gatherv(
+        localBuf.data(), count * n, MPI_FLOAT,
+        worldRank == 0 ? globalBuf.data() : nullptr,
+        recvCounts.data(), displs.data(), MPI_FLOAT,
+        0, MPI_COMM_WORLD
+    );
+
+    std::cout << "[Rank " << worldRank << "] after MPI_Gatherv\n";
+
+    // 6) MPI time end
+    double mpiTime = (MPI_Wtime() - mpiStart) * 1000.0;
+
+    // 7) Output results
+    if (worldRank == 0) {
+        std::cout << "[Rank 0] MPI gather complete.\n";
+        std::cout << "Book Similarity Matrix Test:\n"
+            << "  Sequential Time: " << seqTime << " ms\n"
+            << "  MPI Time: " << mpiTime << " ms\n";
+
+        std::ofstream csv("book_similarity_performance.csv");
+        csv << "Mode,Time_ms\n"
+            << "Sequential," << seqTime << "\n"
+            << "MPI," << mpiTime << "\n";
+        csv.close();
+
+        std::cout << "Results saved to book_similarity_performance.csv\n";
+    }
 }
