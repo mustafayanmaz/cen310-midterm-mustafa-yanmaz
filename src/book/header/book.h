@@ -201,11 +201,7 @@ void deleteBooksMenu();
 void heavyLoadListingTest();
 void autoAddPerformanceTest();
 void searchPerformanceTest();
-void searchPerformanceComparison(const std::string& keyword, const std::vector<Book>& books);
-void genreCountPerformanceTest();
-void keywordFrequencyAnalysisMPI(); 
-void hashPerformanceTestMPI(const std::string& keyword);
-// In book.h
+
 void bookSimilarityMatrixTestMPI(const std::vector<Book>& books);
 
 void exchangeRequestsMenu(const std::string& currentUser);

@@ -26,17 +26,14 @@ int main(int argc, char** argv) {
             std::cin >> choice;
         }
 
-        // Yayın: choice tüm rank'lere
         MPI_Bcast(&choice, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-        // Rank 0'ın currentUser bilgisini tüm rank'lere yay
         if (rank == 0) {
             std::strncpy(userBuffer, currentUser.c_str(), sizeof(userBuffer) - 1);
         }
         MPI_Bcast(userBuffer, sizeof(userBuffer), MPI_CHAR, 0, MPI_COMM_WORLD);
         currentUser = std::string(userBuffer);
 
-        // Ana menü
         if (currentUser.empty()) {
             switch (choice) {
             case 1:
@@ -58,7 +55,6 @@ int main(int argc, char** argv) {
             }
         }
 
-        // Test fonksiyonları: 14–16 herkes çalıştırabilir
         else if (choice >= 14 && choice <= 16) {
             std::vector<Book> allBooks = loadBooks();
 
@@ -66,18 +62,12 @@ int main(int argc, char** argv) {
             case 14:
                 bookSimilarityMatrixTestMPI(allBooks);
                 break;
-            case 15:
-                keywordFrequencyAnalysisMPI();
-                break;
-            case 16:
-                hashPerformanceTestMPI("Auto");
-                break;
+           
             }
 
             if (rank == 0) pauseScreen();
         }
 
-        // Kullanıcı menüsü
         else {
             switch (choice) {
             case 1: if (rank == 0) addBookManually(currentUser); break;
