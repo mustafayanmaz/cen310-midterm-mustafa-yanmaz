@@ -1375,3 +1375,142 @@ void matrixMultiplicationTestMPI(int size) {
 }
 
 
+/**
+ * @brief Tests performance of trigram-based similarity matrix both sequentially and using MPI.
+ * @param books The list of Book objects to compare.
+ */
+void bookTrigramSimilarityTestMPI(const std::vector<Book>& books) {
+    int worldSize, worldRank;
+    MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
+    MPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
+
+    int n = static_cast<int>(books.size());
+    if (n == 0) {
+        if (worldRank == 0) std::cout << "[Rank 0] No books for trigram similarity test.\n";
+        return;
+    }
+
+    if (worldRank == 0) {
+        std::cout << "[Rank 0] Starting trigram similarity test with "
+            << worldSize << " ranks, " << n << " books.\n";
+    }
+
+    // -- Build trigram vocabulary and feature vectors on rank 0 --
+    int M = 0;
+    std::vector<float> flatFeatures;
+    if (worldRank == 0) {
+        // collect all trigrams
+        std::set<std::string> vocabSet;
+        std::vector<std::vector<std::string>> bookTrigrams(n);
+        for (int i = 0; i < n; ++i) {
+            std::string text = books[i].title + " " + books[i].author + " " + books[i].genre;
+            for (size_t j = 0; j + 3 <= text.size(); ++j) {
+                std::string tri = text.substr(j, 3);
+                vocabSet.insert(tri);
+                bookTrigrams[i].push_back(tri);
+            }
+        }
+        M = static_cast<int>(vocabSet.size());
+
+        // map each trigram to an index
+        std::unordered_map<std::string, int> indexMap;
+        indexMap.reserve(M);
+        int idx = 0;
+        for (auto& tri : vocabSet) {
+            indexMap[tri] = idx++;
+        }
+
+        // build dense feature matrix: n × M
+        std::vector<std::vector<float>> features(n, std::vector<float>(M, 0.0f));
+        for (int i = 0; i < n; ++i) {
+            for (auto& tri : bookTrigrams[i]) {
+                features[i][indexMap[tri]] += 1.0f;
+            }
+        }
+
+        // flatten to a single vector for broadcast
+        flatFeatures.resize(n * M);
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < M; ++j) {
+                flatFeatures[i * M + j] = features[i][j];
+            }
+        }
+    }
+
+    // broadcast n and M
+    MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&M, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+    // broadcast flattened feature data
+    if (worldRank != 0) flatFeatures.resize(n * M);
+    MPI_Bcast(flatFeatures.data(), n * M, MPI_FLOAT, 0, MPI_COMM_WORLD);
+
+    // reconstruct feature vectors on all ranks
+    std::vector<std::vector<float>> featureVectors(n, std::vector<float>(M));
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < M; ++j) {
+            featureVectors[i][j] = flatFeatures[i * M + j];
+        }
+    }
+
+    // --- Sequential similarity computation on rank 0 ---
+    double seqTime = 0.0;
+    volatile float dummy = 0.0f;
+    if (worldRank == 0) {
+        auto t0 = std::chrono::steady_clock::now();
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                float dot = 0.0f;
+                for (int k = 0; k < M; ++k) {
+                    dot += featureVectors[i][k] * featureVectors[j][k];
+                }
+                dummy += dot;  // prevent optimization
+            }
+        }
+        auto t1 = std::chrono::steady_clock::now();
+        seqTime = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        std::cout << "[Rank 0] Sequential trigram compute done in "
+            << std::fixed << std::setprecision(2) << seqTime << " ms\n";
+    }
+
+    // --- MPI parallel similarity computation ---
+    int baseRows = n / worldSize;
+    int rem = n % worldSize;
+    int start = worldRank * baseRows + std::min(worldRank, rem);
+    int count = baseRows + (worldRank < rem ? 1 : 0);
+    int end = start + count;
+
+    std::vector<float> localBuf(count * n);
+    MPI_Barrier(MPI_COMM_WORLD);
+    double tStart = MPI_Wtime();
+    for (int i = start; i < end; ++i) {
+        for (int j = 0; j < n; ++j) {
+            float dot = 0.0f;
+            for (int k = 0; k < M; ++k) {
+                dot += featureVectors[i][k] * featureVectors[j][k];
+            }
+            localBuf[(i - start) * n + j] = dot;
+        }
+    }
+    double tEnd = MPI_Wtime();
+    double localTime = (tEnd - tStart) * 1000.0;
+
+    // reduce to get the maximum time as the overall MPI time
+    double mpiTime = 0.0;
+    MPI_Reduce(&localTime, &mpiTime, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+
+    if (worldRank == 0) {
+        std::cout << "[Rank 0] MPI trigram compute done in "
+            << std::fixed << std::setprecision(2) << mpiTime << " ms\n";
+        std::cout << "Speedup: "
+            << std::fixed << std::setprecision(2)
+            << (seqTime / mpiTime) << "× faster\n";
+
+        std::ofstream csv("book_trigram_similarity_performance.csv");
+        csv << "Mode,Time_ms\n";
+        csv << "Sequential," << seqTime << "\n";
+        csv << "MPI," << mpiTime << "\n";
+        csv.close();
+        std::cout << "Results saved to book_trigram_similarity_performance.csv\n";
+    }
+}
