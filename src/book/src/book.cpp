@@ -1514,3 +1514,137 @@ void bookTrigramSimilarityTestMPI(const std::vector<Book>& books) {
         std::cout << "Results saved to book_trigram_similarity_performance.csv\n";
     }
 }
+
+/**
+ * @brief Tests performance of user–user shortest-path (Floyd–Warshall) both sequentially and using MPI.
+ */
+void bookExchangeShortestPathTestMPI() {
+    int worldSize, worldRank;
+    MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
+    MPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
+
+    // --- Rank 0 builds the user graph from transactions ---
+    int nUsers = 0;
+    std::vector<int> flatDist;
+    if (worldRank == 0) {
+        auto transactions = loadTransactions();
+        std::set<std::string> userSet;
+        for (auto& t : transactions) {
+            userSet.insert(t.fromUser);
+            userSet.insert(t.toUser);
+        }
+        nUsers = static_cast<int>(userSet.size());
+        std::vector<std::string> users(userSet.begin(), userSet.end());
+        std::unordered_map<std::string, int> indexMap;
+        for (int i = 0; i < nUsers; ++i) indexMap[users[i]] = i;
+
+        const int INF = std::numeric_limits<int>::max() / 2;
+        flatDist.assign(nUsers * nUsers, INF);
+        for (int i = 0; i < nUsers; ++i) {
+            flatDist[i * nUsers + i] = 0;
+        }
+        for (auto& t : transactions) {
+            int u = indexMap[t.fromUser];
+            int v = indexMap[t.toUser];
+            flatDist[u * nUsers + v] = 1;
+        }
+    }
+
+    // broadcast number of users and initial distance matrix
+    MPI_Bcast(&nUsers, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    if (worldRank != 0) {
+        flatDist.resize(nUsers * nUsers);
+    }
+    MPI_Bcast(flatDist.data(), nUsers * nUsers, MPI_INT, 0, MPI_COMM_WORLD);
+
+    auto idx = [&](int i, int j) { return i * nUsers + j; };
+
+    // --- Sequential Floyd–Warshall on rank 0 ---
+    double seqTime = 0.0;
+    if (worldRank == 0) {
+        std::vector<int> dist = flatDist;
+        auto t0 = std::chrono::steady_clock::now();
+        for (int k = 0; k < nUsers; ++k) {
+            for (int i = 0; i < nUsers; ++i) {
+                for (int j = 0; j < nUsers; ++j) {
+                    int viaK = dist[idx(i, k)] + dist[idx(k, j)];
+                    if (viaK < dist[idx(i, j)])
+                        dist[idx(i, j)] = viaK;
+                }
+            }
+        }
+        auto t1 = std::chrono::steady_clock::now();
+        seqTime = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        std::cout << "[Rank 0] Sequential shortest-path done in "
+            << std::fixed << std::setprecision(2) << seqTime << " ms\n";
+    }
+
+    // --- MPI-parallel Floyd–Warshall ---
+    int baseRows = nUsers / worldSize;
+    int rem = nUsers % worldSize;
+    int start = worldRank * baseRows + std::min(worldRank, rem);
+    int count = baseRows + (worldRank < rem ? 1 : 0);
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    double mpiStart = MPI_Wtime();
+    for (int k = 0; k < nUsers; ++k) {
+        MPI_Bcast(&flatDist[idx(k, 0)], nUsers, MPI_INT, 0, MPI_COMM_WORLD);
+        for (int i = start; i < start + count; ++i) {
+            for (int j = 0; j < nUsers; ++j) {
+                int viaK = flatDist[idx(i, k)] + flatDist[idx(k, j)];
+                if (viaK < flatDist[idx(i, j)])
+                    flatDist[idx(i, j)] = viaK;
+            }
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
+    }
+    double mpiEnd = MPI_Wtime();
+    double mpiTime = (mpiEnd - mpiStart) * 1000.0;
+
+    // prepare gather parameters
+    std::vector<int> fullDist;
+    std::vector<int> recvCounts(worldSize), displs(worldSize);
+    if (worldRank == 0) {
+        fullDist.resize(nUsers * nUsers);
+        int offset = 0;
+        for (int r = 0; r < worldSize; ++r) {
+            int rcount = baseRows + (r < rem ? 1 : 0);
+            recvCounts[r] = rcount * nUsers;
+            displs[r] = offset * nUsers;
+            offset += rcount;
+        }
+    }
+
+    // compute send buffer pointer safely
+    int* sendbuf = nullptr;
+    if (count > 0) {
+        sendbuf = flatDist.data() + start * nUsers;
+    }
+
+    MPI_Gatherv(
+        sendbuf,
+        count * nUsers,
+        MPI_INT,
+        worldRank == 0 ? fullDist.data() : nullptr,
+        recvCounts.data(),
+        displs.data(),
+        MPI_INT,
+        0,
+        MPI_COMM_WORLD
+    );
+
+    if (worldRank == 0) {
+        std::cout << "[Rank 0] MPI shortest-path done in "
+            << std::fixed << std::setprecision(2) << mpiTime << " ms\n";
+        std::cout << "Speedup: "
+            << std::fixed << std::setprecision(2)
+            << (seqTime / mpiTime) << "× faster\n";
+
+        std::ofstream csv("book_exchange_shortest_path_performance.csv");
+        csv << "Mode,Time_ms\n";
+        csv << "Sequential," << seqTime << "\n";
+        csv << "MPI," << mpiTime << "\n";
+        csv.close();
+        std::cout << "Results saved to book_exchange_shortest_path_performance.csv\n";
+    }
+}
