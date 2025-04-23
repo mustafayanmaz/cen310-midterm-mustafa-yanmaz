@@ -1036,28 +1036,12 @@ TEST(MiscTest, ClearAndPauseDoNotThrow) {
     // pauseScreen() waits for user input, so it is not called here.
 }
 
-// ==========================
-// main() for tests
-// ==========================
 
-/**
- * @brief The main function that initializes and runs all tests.
- * @param argc The argument count.
- * @param argv The argument vector.
- * @return The result of running all tests.
- */
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    RemoveTestFiles(); // Clean start
-    int ret = RUN_ALL_TESTS();
-    RemoveTestFiles(); // Clean up after tests
-    return ret;
-}
 TEST(PerformanceTest, SimpleMPITestWithInit) {
     int argc = 0;
     char** argv = nullptr;
 
-    MPI_Init(&argc, &argv);  
+      
 
     std::vector<Book> books = {
         {1, "Alpha", "AuthorA", "Fiction", "User1"},
@@ -1076,5 +1060,176 @@ TEST(PerformanceTest, SimpleMPITestWithInit) {
         file.close();
     }
 
-    MPI_Finalize(); 
+    
+}
+
+// Performance test for the MPI matrix multiplication function
+TEST(PerformanceTest, MatrixMultiplicationTestMPI) {
+    // Initialize MPI
+    int argc = 0;
+    char** argv = nullptr;
+
+    // Choose a small matrix size for testing
+    int N = 8;
+
+    // Run the test function
+    matrixMultiplicationTestMPI(N);
+
+    // Only rank 0 checks the CSV output
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    if (rank == 0) {
+        std::ifstream csv("matrix_multiplication_performance.csv");
+        ASSERT_TRUE(csv.is_open()) << "Failed to open matrix_multiplication_performance.csv";
+
+        // Verify header
+        std::string header;
+        std::getline(csv, header);
+        EXPECT_EQ(header, "Mode,Time_ms");
+
+        // Count result lines (should be at least 2: Sequential and MPI)
+        int lines = 0;
+        std::string line;
+        while (std::getline(csv, line)) {
+            if (!line.empty()) ++lines;
+        }
+        EXPECT_GE(lines, 2) << "Expected at least two result lines";
+
+        csv.close();
+    }
+
+    
+}
+
+// Add this to your book_test.cpp after your other PerformanceTest cases
+
+TEST(PerformanceTest, BookTrigramSimilarityTestMPI) {
+    // determine our MPI rank
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    // prepare a small set of books
+    std::vector<Book> books = {
+        {1, "Alpha", "AuthorA", "Fiction", "User1"},
+        {2, "Beta",  "AuthorB", "Fiction", "User2"},
+        {3, "Gamma", "AuthorC", "History", "User3"}
+    };
+
+    // run the trigram similarity test
+    bookTrigramSimilarityTestMPI(books);
+
+    // only rank 0 verifies the CSV output
+    if (rank == 0) {
+        std::ifstream csv("book_trigram_similarity_performance.csv");
+        ASSERT_TRUE(csv.is_open())
+            << "Failed to open book_trigram_similarity_performance.csv";
+
+        // verify header line
+        std::string header;
+        std::getline(csv, header);
+        EXPECT_EQ(header, "Mode,Time_ms");
+
+        // count data lines (should be at least two: Sequential and MPI)
+        int lines = 0;
+        std::string line;
+        while (std::getline(csv, line)) {
+            if (!line.empty()) ++lines;
+        }
+        EXPECT_GE(lines, 2)
+            << "Expected at least two result lines for Sequential and MPI";
+
+        csv.close();
+    }
+}
+
+TEST(PerformanceTest, BookExchangeShortestPathTestMPI) {
+    // get MPI rank
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    // run the shortest-path performance test
+    bookExchangeShortestPathTestMPI();
+
+    // only rank 0 verifies the output CSV
+    if (rank == 0) {
+        std::ifstream csv("book_exchange_shortest_path_performance.csv");
+        ASSERT_TRUE(csv.is_open())
+            << "Failed to open book_exchange_shortest_path_performance.csv";
+
+        // verify header line
+        std::string header;
+        std::getline(csv, header);
+        EXPECT_EQ(header, "Mode,Time_ms");
+
+        // count result lines (should be at least two: Sequential and MPI)
+        int lines = 0;
+        std::string line;
+        while (std::getline(csv, line)) {
+            if (!line.empty()) ++lines;
+        }
+        EXPECT_GE(lines, 2)
+            << "Expected at least two result lines for Sequential and MPI";
+
+        csv.close();
+    }
+}
+
+TEST(PerformanceTest, BookExchangeShortestPathTestMPI_CoverAllBranches) {
+    // first, clear any old data and insert some transactions
+    RemoveTestFiles();
+    addTransaction(Transaction(1, "A", "B", "2025-05-01 00:00:00"));
+    addTransaction(Transaction(2, "B", "C", "2025-05-01 00:00:01"));
+    addTransaction(Transaction(3, "C", "D", "2025-05-01 00:00:02"));
+    addTransaction(Transaction(4, "D", "A", "2025-05-01 00:00:03"));
+
+    // determine our rank and size
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    // now run the test
+    bookExchangeShortestPathTestMPI();
+
+    // after running, both rank 0 and rank 1 have executed all branches
+    // rank 0 will have produced the CSV
+    if (rank == 0) {
+        std::ifstream csv("book_exchange_shortest_path_performance.csv");
+        ASSERT_TRUE(csv.is_open())
+            << "CSV file not created by rank 0";
+
+        std::string header;
+        std::getline(csv, header);
+        EXPECT_EQ(header, "Mode,Time_ms");
+
+        int lines = 0;
+        std::string line;
+        while (std::getline(csv, line)) {
+            if (!line.empty()) ++lines;
+        }
+        EXPECT_GE(lines, 2)
+            << "Expected at least two result lines";
+
+        csv.close();
+    }
+}
+
+
+// ==========================
+// main() for tests
+// ==========================
+
+/**
+ * @brief The main function that initializes and runs all tests.
+ * @param argc The argument count.
+ * @param argv The argument vector.
+ * @return The result of running all tests.
+ */
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    RemoveTestFiles(); // Clean start
+    MPI_Init(&argc, &argv);
+    int ret = RUN_ALL_TESTS();
+    RemoveTestFiles(); // Clean up after tests
+    MPI_Finalize();
+    return ret;
 }
